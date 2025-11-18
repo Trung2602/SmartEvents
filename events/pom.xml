@@ -12,7 +12,7 @@
 	<artifactId>events</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>events</name>
-	<description>The project is an intelligent event assistant system. The goal is to manage events and integrate AI to support searching and recommending events suitable for users.</description>
+	<description>Demo project for Spring Boot</description>
 	<url/>
 	<licenses>
 		<license/>
@@ -44,8 +44,14 @@
 		</dependency>
 
 		<dependency>
-			<groupId>com.mysql</groupId>
-			<artifactId>mysql-connector-j</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<scope>runtime</scope>
+			<optional>true</optional>
+		</dependency>
+		<dependency>
+			<groupId>org.postgresql</groupId>
+			<artifactId>postgresql</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
