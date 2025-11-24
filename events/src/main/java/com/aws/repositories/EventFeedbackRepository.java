@@ -5,8 +5,17 @@ import com.aws.pojo.EventFeedback;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface EventFeedbackRepository extends JpaRepository<EventFeedback, UUID> {
+
+    List<EventFeedback> findByEvent_Uuid(UUID eventUuid);
+
+    List<EventFeedback> findByUser_Uuid(UUID userUuid);
+
+    Optional<EventFeedback> findByEvent_UuidAndUser_Uuid(UUID eventUuid, UUID userUuid);
+
 }
