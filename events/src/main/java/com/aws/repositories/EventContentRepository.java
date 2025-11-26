@@ -14,5 +14,4 @@ public interface EventContentRepository extends JpaRepository<EventContent, UUID
 
     Page<EventContent> findByEvent(Event event, Pageable pageable);
 
-    Page<EventContent> findByEventUuid(UUID eventUuid, Pageable pageable);
 }

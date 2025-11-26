@@ -16,17 +16,10 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
 
     Page<Event> findByChannel(Channel channel, Pageable pageable);
 
-    Page<Event> findByChannelUuid(UUID channelUuid, Pageable pageable);
-
     Page<Event> findByStatus(Event.Status status, Pageable pageable);
-
-    Page<Event> findByChannelUuidAndStatus(UUID channelUuid, Event.Status status, Pageable pageable);
 
     Page<Event> findByCreatedBy(Account creator, Pageable pageable);
 
-    Page<Event> findByCreatedByUuid(UUID creatorUuid, Pageable pageable);
-
     Page<Event> findByAcceptedBy(Admin acceptedBy, Pageable pageable);
 
-    Page<Event> findByAcceptedByUuid(UUID acceptedByUuid, Pageable pageable);
 }

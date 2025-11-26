@@ -17,9 +17,11 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 @Service("userDetailsService")
 public class AccountServiceImpl implements AccountService {
@@ -57,6 +59,32 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    public Page<Account> searchAccountsByRole(String role, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id"));
+        return this.accountRepository.findByRole(Account.Role.valueOf(role), pageable);
+    }
+
+    @Transactional
+    @Override
+    public void deactivateAccount(UUID userId) {
+        Account acc = accountRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        acc.setIsActive(false);
+        accountRepository.save(acc);
+    }
+
+    @Transactional
+    @Override
+    public void activateAccount(UUID userId) {
+        Account acc = accountRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        acc.setIsActive(true);
+        accountRepository.save(acc);
+    }
+
+    @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         Account u = this.getAccountByEmail(email);
         if (u == null) {
@@ -75,6 +103,8 @@ public class AccountServiceImpl implements AccountService {
         Optional<Account> a = this.accountRepository.findByEmail(email);
         if (a.isPresent()) {
             Account account = a.get();
+            account.setLastLoginAt(LocalDateTime.now());
+            accountRepository.save(account);
             return passwordEncoder.matches(password, account.getPasswordHash());
         }
         return false;

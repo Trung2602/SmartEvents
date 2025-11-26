@@ -2,7 +2,9 @@ package com.aws.repositories;
 
 import com.aws.pojo.Event;
 import com.aws.pojo.EventFeedback;
+import com.aws.pojo.User;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -13,10 +15,10 @@ import java.util.UUID;
 @Repository
 public interface EventFeedbackRepository extends JpaRepository<EventFeedback, UUID> {
 
-    Page<EventFeedback> findByEvent_Uuid(UUID eventUuid);
+    Page<EventFeedback> findByEvent(Event event, Pageable pageable);
 
-    Page<EventFeedback> findByUser_Uuid(UUID userUuid);
+    Page<EventFeedback> findByUser(User user, Pageable pageable);
 
-    Optional<EventFeedback> findByEvent_UuidAndUser_Uuid(UUID eventUuid, UUID userUuid);
+    Optional<EventFeedback> findByEventAndUser(Event event, User user);
 
 }

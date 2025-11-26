@@ -49,4 +49,15 @@ public class Account {
     public enum Role {
         ADMIN, USER
     }
+
+    @PreUpdate
+    public void onUpdate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    @PrePersist
+    public void onCreate() {
+        this.updatedAt = LocalDateTime.now();
+    }
+
 }

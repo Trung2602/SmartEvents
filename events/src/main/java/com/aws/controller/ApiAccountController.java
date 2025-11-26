@@ -3,7 +3,6 @@ package com.aws.controller;
 
 import com.aws.dto.AccountDTO;
 import com.aws.pojo.Account;
-import com.aws.pojo.ChannelMember;
 import com.aws.services.AccountService;
 import com.aws.utils.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +23,7 @@ public class ApiAccountController {
     @PostMapping("/auth/login")
     public ResponseEntity<?> login(@RequestBody Account a) {
         if (a.getEmail() == null || a.getPasswordHash() == null) {
-            return ResponseEntity.badRequest().body("Username hoặc password không được để trống");
+            return ResponseEntity.badRequest().body("Username or password can not be null");
         }
 
         if (this.accountService.authenticate(a.getEmail(), a.getPasswordHash())) {
@@ -32,10 +31,10 @@ public class ApiAccountController {
                 String token = JwtUtils.generateToken(a.getEmail());
                 return ResponseEntity.ok().body(Collections.singletonMap("token", token));
             } catch (Exception e) {
-                return ResponseEntity.status(500).body("Lỗi khi tạo JWT");
+                return ResponseEntity.status(500).body("Error to create JWT");
             }
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Sai thông tin đăng nhập");
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Password or Username is not correct");
     }
 
     @RequestMapping("/secure/profile")
@@ -49,7 +48,7 @@ public class ApiAccountController {
     public ResponseEntity<?> addUser(@ModelAttribute AccountDTO a) {
         try {
             if(a.getRole() == null || a.getRole().isBlank()){
-                return ResponseEntity.badRequest().body("Vai trò không được để trống!");
+                return ResponseEntity.badRequest().body("Role can not be empty!");
             }
 
             Account account = new Account();
@@ -64,9 +63,9 @@ public class ApiAccountController {
 
             return ResponseEntity.ok(accountSaved);
         } catch (Exception e) {
-            e.printStackTrace(); // Log ra console
+            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Lỗi khi thêm người dùng: " + e.getMessage());
+                    .body("Error to create new User: " + e.getMessage());
         }
     }
 }
