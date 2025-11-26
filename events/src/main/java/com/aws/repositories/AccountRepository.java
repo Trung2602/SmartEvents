@@ -20,5 +20,4 @@ public interface  AccountRepository extends JpaRepository<Account, UUID> {
 
     Page<Account> findByIsActive(Boolean isActive, Pageable pageable);
 
-    Page<Account> findByEmailVerified(Boolean emailVerified, Pageable pageable);
 }

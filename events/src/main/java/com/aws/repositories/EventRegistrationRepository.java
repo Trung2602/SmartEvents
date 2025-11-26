@@ -1,7 +1,10 @@
 package com.aws.repositories;
 
+import com.aws.pojo.Event;
 import com.aws.pojo.EventRegistration;
+import com.aws.pojo.User;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -12,13 +15,12 @@ import java.util.UUID;
 @Repository
 public interface EventRegistrationRepository extends JpaRepository<EventRegistration, UUID> {
 
-    Page<EventRegistration> findByEvent_Uuid(UUID eventUuid);
+    Page<EventRegistration> findByEvent(Event event, Pageable pageable);
 
-    Page<EventRegistration> findByUser_Uuid(UUID userUuid);
+    Page<EventRegistration> findByUser(User user, Pageable pageable);
 
-    Optional<EventRegistration> findByEvent_UuidAndUser_Uuid(UUID eventUuid, UUID userUuid);
+    Optional<EventRegistration> findByEventAndUser(Event event, User user);
 
-    Page<EventRegistration> findByEvent_UuidAndRegistrationStatus(UUID eventUuid, EventRegistration.RegistrationStatus status);
+    Page<EventRegistration> findByEventAndRegistrationStatus(Event event, EventRegistration.RegistrationStatus status, Pageable pageable);
 
-    long countByEvent_Uuid(UUID eventUuid);
 }
