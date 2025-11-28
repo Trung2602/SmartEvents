@@ -14,4 +14,5 @@ public interface ChannelRepository extends JpaRepository<Channel, UUID> {
 
     Page<Channel> findByName(String name, Pageable pageable);
 
+    Page<Channel> findByOwner_Uuid(UUID ownerUuid, Pageable pageable);
 }

@@ -21,6 +21,12 @@ public class ChannelServiceImpl implements ChannelService {
     private ChannelRepository channelRepository;
 
     @Override
+    public Channel getChannelByUuid(UUID uuid) {
+        Optional<Channel> channel = channelRepository.findById(uuid);
+        return channel.orElse(null);
+    }
+
+    @Override
     public Page<Channel> searchChannelsByName(String name, int page, int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("uuid"));
         return this.channelRepository.findByName(name, pageable);
@@ -41,5 +47,11 @@ public class ChannelServiceImpl implements ChannelService {
     @Override
     public void deleteChannel(Channel channel) {
         this.channelRepository.delete(channel);
+    }
+
+    @Override
+    public Page<Channel> getChannelsByOwner(UUID ownerUuid, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return channelRepository.findByOwner_Uuid(ownerUuid, pageable);
     }
 }
