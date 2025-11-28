@@ -14,7 +14,9 @@ import java.util.UUID;
 @Repository
 public interface ChannelMemberRepository extends JpaRepository<ChannelMember, UUID> {
 
-    Page<ChannelMember> findByChannel(Channel channel, Pageable pageable);
+    Page<ChannelMember> findByChannel_Uuid(UUID channelUuid, Pageable pageable);
 
-    Page<ChannelMember> findByUser(Account user, Pageable pageable);
+    Page<ChannelMember> findByUsers_Uuid(UUID usersUuid, Pageable pageable);
+
+    Page<ChannelMember> findByInvitationStatus(String invitationStatus, Pageable pageable);
 }
