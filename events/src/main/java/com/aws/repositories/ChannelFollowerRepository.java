@@ -13,8 +13,10 @@ import java.util.UUID;
 
 @Repository
 public interface ChannelFollowerRepository extends JpaRepository<ChannelFollower, UUID> {
-    Page<ChannelFollower> findByFollower(Account follower, Pageable pageable);
 
     Page<ChannelFollower> findByNotificationEnabled(Boolean enabled, Pageable pageable);
 
+    Page<ChannelFollower> findByChannel_Uuid(UUID channelUuid, Pageable pageable);
+
+    Page<ChannelFollower> findByFollower_Uuid(UUID followerUuid, Pageable pageable);
 }

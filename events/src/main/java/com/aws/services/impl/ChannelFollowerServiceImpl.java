@@ -6,6 +6,9 @@ import com.aws.repositories.ChannelFollowerRepository;
 import com.aws.services.ChannelFollowerService;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -33,5 +36,17 @@ public class ChannelFollowerServiceImpl implements ChannelFollowerService {
     @Override
     public void deleteChannelFollower(ChannelFollower channelFollower) {
         this.channelFollowerRepository.delete(channelFollower);
+    }
+
+    @Override
+    public Page<ChannelFollower> getChannelFollowersByChannelUuid(UUID channelUuid, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return channelFollowerRepository.findByChannel_Uuid(channelUuid, pageable);
+    }
+
+    @Override
+    public Page<ChannelFollower> getChannelFollowersByFollowerUuid(UUID followerlUuid, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return channelFollowerRepository.findByChannel_Uuid(followerlUuid, pageable);
     }
 }
