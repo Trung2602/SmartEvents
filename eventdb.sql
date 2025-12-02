@@ -1,217 +1,231 @@
+-- =========================
+-- USER-SERVICE SCHEMA
+-- =========================
+
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Core account - Single source of truth cho identity
 CREATE TABLE account (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(100) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
-    avatar_url VARCHAR(500),
+    password_hash VARCHAR(255) NOT NULL, -- Argon2id recommended
     role VARCHAR(10) DEFAULT 'USER',
-    is_active BOOLEAN DEFAULT TRUE,
     email_verified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     last_login_at TIMESTAMP,
+    mfa_secret VARCHAR(32), -- For 2FA
+    mfa_enabled BOOLEAN DEFAULT FALSE,
     CONSTRAINT check_role CHECK (role IN ('ADMIN', 'USER'))
 );
 
-CREATE TABLE admin (
+CREATE TABLE disaccount (
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL, -- Argon2id recommended
+    role VARCHAR(10) DEFAULT 'USER',
+    email_verified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login_at TIMESTAMP,
+    mfa_secret VARCHAR(32), -- For 2FA
+    mfa_enabled BOOLEAN DEFAULT FALSE,
+    CONSTRAINT check_role CHECK (role IN ('ADMIN', 'USER'))
+);
+
+COMMENT ON TABLE account IS 'Centralized identity - Owned exclusively by User-Service';
+
+-- Admin extension (optional, có thể move sang Admin-Service)
+CREATE TABLE admin_profile (
     account_uuid UUID PRIMARY KEY,
     department VARCHAR(100),
-    permissions TEXT,
+    permissions JSONB, -- JSONB thay vì TEXT
     CONSTRAINT fk_admin_account FOREIGN KEY (account_uuid) REFERENCES account(uuid) ON DELETE CASCADE
 );
 
-CREATE TABLE users (
+-- User profile (separate table để optimize queries)
+CREATE TABLE user_profile (
     account_uuid UUID PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
-    date_of_birth DATE,
+    full_name VARCHAR(201) GENERATED ALWAYS AS (first_name || ' ' || last_name) STORED, -- Computed column
+    date_of_birth DATE CHECK (date_of_birth IS NULL OR date_of_birth <= CURRENT_DATE - INTERVAL '13 years'), -- Min age 13
     city VARCHAR(100),
-    country_code VARCHAR(10),
-    interests TEXT,
-    sentiment_score DECIMAL(4,3) DEFAULT 0.000,
-    preferences TEXT,
-    CONSTRAINT fk_users_account FOREIGN KEY (account_uuid) REFERENCES account(uuid) ON DELETE CASCADE,
-    CONSTRAINT check_sentiment CHECK (sentiment_score >= -1.000 AND sentiment_score <= 1.000),
-    CONSTRAINT check_birth_date CHECK (date_of_birth IS NULL OR date_of_birth <= CURRENT_DATE)
+    country_code VARCHAR(3), -- ISO 3166-1 alpha-3
+    avatar_url VARCHAR(500) CHECK (avatar_url ~ '^https?://'), -- URL validation
+    bio TEXT CHECK (LENGTH(bio) <= 500),
+    interests JSONB, -- Array of tags
+    social_links JSONB, -- {facebook, twitter, ...}
+    preferences JSONB, -- Notification settings, timezone
+    privacy_settings JSONB, -- Profile visibility
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_profile_account FOREIGN KEY (account_uuid) REFERENCES account(uuid) ON DELETE CASCADE
 );
 
-CREATE TABLE channel (
+-- Indexes cho performance
+CREATE INDEX idx_account_email ON account(email);
+CREATE INDEX idx_user_profile_country ON user_profile(country_code);
+CREATE INDEX idx_user_profile_city ON user_profile(city);
+
+-- Audit log cho security-critical operations
+CREATE TABLE account_audit_log (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    account_uuid UUID NOT NULL,
+    action VARCHAR(50) NOT NULL, -- LOGIN, PASSWORD_CHANGE, EMAIL_CHANGE
+    ip_address INET,
+    user_agent TEXT,
+    success BOOLEAN,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_audit_account ON account_audit_log(account_uuid, created_at DESC);
+
+-- =========================
+-- PAGE-SERVICE SCHEMA
+-- =========================
+
+-- Page entity (renamed from channel)
+CREATE TABLE page (
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    owner_uuid UUID NOT NULL, -- NO FK! Store as UUID string
     name VARCHAR(255) NOT NULL,
+    slug VARCHAR(255) UNIQUE NOT NULL, -- SEO-friendly URL
     description TEXT,
-    channel_type VARCHAR(20) DEFAULT 'PERSONAL',
-    avatar_url VARCHAR(500),
-    cover_image_url VARCHAR(500),
+    page_type VARCHAR(20) DEFAULT 'PERSONAL', -- RENAME
+    avatar_url VARCHAR(500) CHECK (avatar_url ~ '^https?://'),
+    cover_image_url VARCHAR(500) CHECK (cover_image_url ~ '^https?://'),
     is_public BOOLEAN DEFAULT TRUE,
     is_verified BOOLEAN DEFAULT FALSE,
-    follower_count INTEGER DEFAULT 0,
-    event_count INTEGER DEFAULT 0,
-    owner_uuid UUID NOT NULL,
+    follower_count INTEGER DEFAULT 0 CHECK (follower_count >= 0),
+    event_count INTEGER DEFAULT 0 CHECK (event_count >= 0),
     status VARCHAR(15) DEFAULT 'ACTIVE',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT check_channel_type CHECK (channel_type IN ('PERSONAL', 'ORGANIZATION', 'BUSINESS', 'COMMUNITY')),
-    CONSTRAINT check_status CHECK (status IN ('ACTIVE', 'SUSPENDED', 'DELETED')),
-    CONSTRAINT check_follower_count CHECK (follower_count >= 0),
-    CONSTRAINT check_event_count CHECK (event_count >= 0),
-    CONSTRAINT fk_channel_owner FOREIGN KEY (owner_uuid) REFERENCES account(uuid)
+    deleted_at TIMESTAMP, -- Soft delete
+    CONSTRAINT check_page_type CHECK (page_type IN ('PERSONAL', 'ORGANIZATION', 'BUSINESS', 'COMMUNITY')),
+    CONSTRAINT check_status CHECK (status IN ('ACTIVE', 'SUSPENDED', 'DELETED'))
 );
 
-CREATE TABLE channel_member (
+-- Event sourcing: Store owner snapshot để tránh query User-Service
+CREATE TABLE page_owner_snapshot (
+    page_uuid UUID PRIMARY KEY,
+    owner_uuid UUID NOT NULL,
+    owner_email VARCHAR(100),
+    owner_name VARCHAR(100),
+    snapshot_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Page membership (thay vì channel_member)
+CREATE TABLE page_member (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    channel_uuid UUID NOT NULL,
-    users_uuid UUID NOT NULL,
+    page_uuid UUID NOT NULL,
+    user_uuid UUID NOT NULL, -- NO FK!
     role VARCHAR(15) DEFAULT 'MEMBER',
-    permissions TEXT,
+    permissions JSONB, -- Granular permissions
     invitation_status VARCHAR(15) DEFAULT 'PENDING',
-    invited_by UUID,
+    invited_by UUID, -- UUID string
+    invited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     joined_at TIMESTAMP,
+    left_at TIMESTAMP,
     CONSTRAINT check_member_role CHECK (role IN ('OWNER', 'ADMIN', 'MODERATOR', 'EDITOR', 'MEMBER')),
     CONSTRAINT check_invitation_status CHECK (invitation_status IN ('PENDING', 'ACCEPTED', 'DECLINED', 'REMOVED')),
-    CONSTRAINT unique_channel_member UNIQUE(channel_uuid, users_uuid),
-    CONSTRAINT fk_member_channel FOREIGN KEY (channel_uuid) REFERENCES channel(uuid) ON DELETE CASCADE,
-    CONSTRAINT fk_member_users FOREIGN KEY (users_uuid) REFERENCES account(uuid) ON DELETE CASCADE,
-    CONSTRAINT fk_invited_by FOREIGN KEY (invited_by) REFERENCES account(uuid)
+    CONSTRAINT unique_page_member UNIQUE(page_uuid, user_uuid)
 );
 
-CREATE TABLE channel_follower (
+-- Page followers (thay vì channel_follower)
+CREATE TABLE page_follower (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    channel_uuid UUID NOT NULL,
-    follower_uuid UUID NOT NULL,
+    page_uuid UUID NOT NULL,
+    follower_uuid UUID NOT NULL, -- NO FK!
     notification_enabled BOOLEAN DEFAULT TRUE,
-    CONSTRAINT unique_channel_follower UNIQUE(channel_uuid, follower_uuid),
-    CONSTRAINT fk_follower_channel FOREIGN KEY (channel_uuid) REFERENCES channel(uuid) ON DELETE CASCADE,
-    CONSTRAINT fk_follower_users FOREIGN KEY (follower_uuid) REFERENCES account(uuid) ON DELETE CASCADE
+    muted_until TIMESTAMP,
+    followed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT unique_page_follower UNIQUE(page_uuid, follower_uuid)
 );
 
-CREATE TABLE event (
+-- CRITICAL: Materialized view cho follower count (không update real-time)
+CREATE MATERIALIZED VIEW page_follower_count AS
+SELECT page_uuid, COUNT(*) as count
+FROM page_follower
+GROUP BY page_uuid;
+
+CREATE UNIQUE INDEX ON page_follower_count(page_uuid);
+
+-- Refresh mỗi giờ
+-- REFRESH MATERIALIZED VIEW CONCURRENTLY page_follower_count;
+
+-- Indexes
+CREATE INDEX idx_page_owner ON page(owner_uuid);
+CREATE INDEX idx_page_slug ON page(slug);
+CREATE INDEX idx_page_status ON page(status) WHERE status = 'ACTIVE';
+CREATE INDEX idx_page_member_user ON page_member(user_uuid);
+CREATE INDEX idx_page_follower_user ON page_follower(follower_uuid);
+
+-- Audit log cho page actions
+CREATE TABLE page_audit_log (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    channel_uuid UUID,
-    current_version_uuid UUID NOT NULL,
-    original_uuid UUID NOT NULL,
-    status VARCHAR(10) DEFAULT 'PENDING',
-    max_participants INTEGER,
-    current_participants INTEGER DEFAULT 0,
-    created_by UUID NOT NULL,
-    accepted_by UUID,
-    edit_count INTEGER DEFAULT 0,
-    CONSTRAINT check_status CHECK (status IN ('PENDING', 'ACCEPTED', 'REJECTED')),
-    CONSTRAINT check_participants CHECK (max_participants IS NULL OR (max_participants > 0 AND current_participants <= max_participants)),
-    CONSTRAINT fk_event_channel FOREIGN KEY (channel_uuid) REFERENCES channel(uuid),
-    CONSTRAINT fk_event_creator FOREIGN KEY (created_by) REFERENCES account(uuid),
-    CONSTRAINT fk_event_acceptor FOREIGN KEY (accepted_by) REFERENCES admin(account_uuid)
+    page_uuid UUID NOT NULL,
+    user_uuid UUID NOT NULL,
+    action VARCHAR(50) NOT NULL, -- PAGE_CREATED, MEMBER_ADDED, etc.
+    details JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE event_content (
+-- =========================
+-- NOTIFICATION-SERVICE SCHEMA
+-- =========================
+
+CREATE TABLE notification (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_uuid UUID NOT NULL,
-    previous_version_uuid UUID,
+    user_uuid UUID NOT NULL, -- NO FK!
+    notification_type VARCHAR(30) NOT NULL, -- EVENT_PUBLISHED, REGISTRATION_CONFIRMED, PAYMENT_SUCCESS
+    priority VARCHAR(10) DEFAULT 'NORMAL', -- LOW, NORMAL, HIGH, URGENT
     title VARCHAR(255) NOT NULL,
-    description TEXT NOT NULL,
-    location VARCHAR(255) NOT NULL,
-    city VARCHAR(100) NOT NULL,
-    category VARCHAR(100) NOT NULL,
-    tags TEXT,
-    country_code VARCHAR(10) NOT NULL,
-    start_time TIMESTAMP NOT NULL,
-    end_time TIMESTAMP NOT NULL,
+    body TEXT NOT NULL,
+    deep_link VARCHAR(500), -- app://event/12345
     image_url VARCHAR(500),
-    host_uuids UUID[],
-    edited_by UUID NOT NULL,
-    edit_reason VARCHAR(500),
-    is_current_version BOOLEAN DEFAULT TRUE,
-    CONSTRAINT check_time_range CHECK (end_time > start_time),
-    CONSTRAINT fk_content_event FOREIGN KEY (event_uuid) REFERENCES event(uuid) ON DELETE CASCADE,
-    CONSTRAINT fk_content_editor FOREIGN KEY (edited_by) REFERENCES account(uuid),
-    CONSTRAINT fk_previous_version FOREIGN KEY (previous_version_uuid) REFERENCES event_content(uuid)
+    is_read BOOLEAN DEFAULT FALSE,
+    read_at TIMESTAMP,
+    delivered_at TIMESTAMP,
+    delivery_status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, SENT, FAILED
+    failure_reason TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP
 );
 
-CREATE TABLE event_registration (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_uuid UUID NOT NULL,
-    users_uuid UUID NOT NULL,
-    registration_status VARCHAR(15) DEFAULT 'REGISTERED',
-    registration_notes TEXT,
-    check_in_status VARCHAR(15) DEFAULT 'NOT_CHECKED_IN',
-    check_in_time TIMESTAMP,
-    cancellation_reason VARCHAR(500),
-    is_waitlist BOOLEAN DEFAULT FALSE,
-    waitlist_position INTEGER,
-    CONSTRAINT check_registration_status CHECK (registration_status IN ('REGISTERED', 'CANCELLED', 'NO_SHOW', 'ATTENDED')),
-    CONSTRAINT check_checkin_status CHECK (check_in_status IN ('NOT_CHECKED_IN', 'CHECKED_IN', 'CHECKED_OUT')),
-    CONSTRAINT check_waitlist_position CHECK (waitlist_position IS NULL OR waitlist_position > 0),
-    CONSTRAINT unique_registration UNIQUE(event_uuid, users_uuid),
-    CONSTRAINT fk_registration_event FOREIGN KEY (event_uuid) REFERENCES event(uuid) ON DELETE CASCADE,
-    CONSTRAINT fk_registration_users FOREIGN KEY (users_uuid) REFERENCES users(account_uuid) ON DELETE CASCADE
+-- User notification preferences
+CREATE TABLE notification_preference (
+    user_uuid UUID PRIMARY KEY,
+    push_enabled BOOLEAN DEFAULT TRUE,
+    email_enabled BOOLEAN DEFAULT TRUE,
+    sms_enabled BOOLEAN DEFAULT FALSE,
+    quiet_hours_start TIME,
+    quiet_hours_end TIME,
+    blocked_categories TEXT[], -- ['MARKETING', 'SOCIAL']
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE event_feedback (
+-- Notification device tokens (FCM, APNS)
+CREATE TABLE notification_device (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_uuid UUID NOT NULL,
-    users_uuid UUID NOT NULL,
-    rating SMALLINT NOT NULL,
-    comment TEXT,
-    sentiment VARCHAR(10),
-    sentiment_confidence DECIMAL(4,3),
-    CONSTRAINT check_rating CHECK (rating >= 1 AND rating <= 5),
-    CONSTRAINT check_sentiment_type CHECK (sentiment IN ('POSITIVE', 'NEUTRAL', 'NEGATIVE')),
-    CONSTRAINT check_confidence CHECK (sentiment_confidence IS NULL OR (sentiment_confidence >= 0.000 AND sentiment_confidence <= 1.000)),
-    CONSTRAINT unique_feedback UNIQUE(event_uuid, users_uuid),
-    CONSTRAINT fk_feedback_event FOREIGN KEY (event_uuid) REFERENCES event(uuid) ON DELETE CASCADE,
-    CONSTRAINT fk_feedback_users FOREIGN KEY (users_uuid) REFERENCES users(account_uuid) ON DELETE CASCADE
-);
-
-CREATE TABLE chat_history (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    users_uuid UUID NOT NULL,
-    session_id UUID DEFAULT uuid_generate_v4(),
-    message TEXT NOT NULL,
-    ai_response TEXT NOT NULL,
-    context_used TEXT,
-    model_used VARCHAR(100),
-    response_time_ms INTEGER,
-    CONSTRAINT check_response_time CHECK (response_time_ms IS NULL OR response_time_ms > 0),
-    CONSTRAINT fk_chat_users FOREIGN KEY (users_uuid) REFERENCES users(account_uuid) ON DELETE CASCADE
-);
-
-CREATE TABLE recommendation (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    users_uuid UUID NOT NULL,
-    event_uuid UUID NOT NULL,
-    model_used VARCHAR(100) NOT NULL,
-    confidence_score DECIMAL(4,3) NOT NULL,
-    reasoning TEXT,
-    is_clicked BOOLEAN DEFAULT FALSE,
-    is_registered BOOLEAN DEFAULT FALSE,
-    expires_at TIMESTAMP,
-    CONSTRAINT check_confidence_score CHECK (confidence_score >= 0.000 AND confidence_score <= 1.000),
-    CONSTRAINT unique_recommendation UNIQUE(users_uuid, event_uuid),
-    CONSTRAINT fk_rec_users FOREIGN KEY (users_uuid) REFERENCES users(account_uuid) ON DELETE CASCADE,
-    CONSTRAINT fk_rec_event FOREIGN KEY (event_uuid) REFERENCES event(uuid) ON DELETE CASCADE
-);
-
-CREATE TABLE event_embedding (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_uuid UUID NOT NULL,
-    embedding_vector TEXT,
-    source_text TEXT NOT NULL,
-    model_used VARCHAR(100) NOT NULL,
-    dimension INTEGER NOT NULL,
+    user_uuid UUID NOT NULL, -- NO FK!
+    device_type VARCHAR(10) CHECK (device_type IN ('IOS', 'ANDROID', 'WEB')),
+    device_token TEXT NOT NULL,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT check_dimension CHECK (dimension > 0),
-    CONSTRAINT unique_embedding UNIQUE(event_uuid),
-    CONSTRAINT fk_embedding_event FOREIGN KEY (event_uuid) REFERENCES event(uuid) ON DELETE CASCADE
+    CONSTRAINT unique_device_token UNIQUE(device_token)
 );
 
-CREATE TABLE image_analysis (
+-- Outbox pattern for reliable event delivery
+CREATE TABLE notification_outbox (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_uuid UUID NOT NULL,
-    s3_key VARCHAR(500) NOT NULL,
-    s3_bucket VARCHAR(100) NOT NULL,
-    detected_labels TEXT NOT NULL,
-    confidence_score DECIMAL(4,3) NOT NULL,
-    image_size_bytes BIGINT,
-    image_dimensions TEXT,
-    CONSTRAINT check_image_confidence CHECK (confidence_score >= 0.000 AND confidence_score <= 1.000),
-    CONSTRAINT check_image_size CHECK (image_size_bytes IS NULL OR image_size_bytes > 0),
-    CONSTRAINT fk_analysis_event FOREIGN KEY (event_uuid) REFERENCES event(uuid) ON DELETE CASCADE
+    event_type VARCHAR(30) NOT NULL,
+    payload JSONB NOT NULL,
+    processed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX idx_notification_user ON notification(user_uuid, created_at DESC) WHERE is_read = FALSE;
+CREATE INDEX idx_notification_status ON notification(delivery_status) WHERE delivery_status = 'PENDING';
