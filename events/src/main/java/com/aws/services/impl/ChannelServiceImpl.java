@@ -54,4 +54,50 @@ public class ChannelServiceImpl implements ChannelService {
         Pageable pageable = PageRequest.of(page, size);
         return channelRepository.findByOwner_Uuid(ownerUuid, pageable);
     }
+
+    @Override
+    public void increaseFollowerCount(UUID uuid) {
+        channelRepository.findById(uuid).ifPresent(channel -> {
+            channel.setFollowerCount(channel.getFollowerCount() + 1);
+            channelRepository.save(channel);
+        });
+    }
+
+    @Override
+    public void decreaseFollowerCount(UUID uuid) {
+        channelRepository.findById(uuid).ifPresent(channel -> {
+            int current = channel.getFollowerCount();
+            if (current > 0) {
+                channel.setFollowerCount(current - 1);
+                channelRepository.save(channel);
+            }
+        });
+    }
+
+    @Override
+    public void increaseEventCount(UUID uuid) {
+        channelRepository.findById(uuid).ifPresent(channel -> {
+            channel.setEventCount(channel.getEventCount() + 1);
+            channelRepository.save(channel);
+        });
+    }
+
+    @Override
+    public void decreaseEventCount(UUID uuid) {
+        channelRepository.findById(uuid).ifPresent(channel -> {
+            int current = channel.getEventCount();
+            if (current > 0) {
+                channel.setEventCount(current - 1);
+                channelRepository.save(channel);
+            }
+        });
+    }
+
+    @Override
+    public void verifyChannel(UUID uuid) {
+        channelRepository.findById(uuid).ifPresent(channel -> {
+            channel.setIsVerified(!channel.getIsVerified());
+            channelRepository.save(channel);
+        });
+    }
 }

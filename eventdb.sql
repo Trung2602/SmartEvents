@@ -4,7 +4,6 @@ CREATE TABLE account (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     email VARCHAR(100) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
-    name VARCHAR(100) NOT NULL,
     avatar_url VARCHAR(500),
     role VARCHAR(10) DEFAULT 'USER',
     is_active BOOLEAN DEFAULT TRUE,

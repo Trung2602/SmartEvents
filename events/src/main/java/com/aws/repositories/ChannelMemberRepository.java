@@ -16,7 +16,7 @@ public interface ChannelMemberRepository extends JpaRepository<ChannelMember, UU
 
     Page<ChannelMember> findByChannel_Uuid(UUID channelUuid, Pageable pageable);
 
-    Page<ChannelMember> findByUsers_Uuid(UUID usersUuid, Pageable pageable);
+    Page<ChannelMember> findByUser_Uuid(UUID userUuid, Pageable pageable);
 
     Page<ChannelMember> findByInvitationStatus(String invitationStatus, Pageable pageable);
 }

@@ -44,7 +44,7 @@ public class ChannelMemberServiceImpl implements ChannelMemberService {
     @Override
     public Page<ChannelMember> getChannelMembersByUserUuid(UUID userUuid, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return channelMemberRepository.findByUsers_Uuid(userUuid, pageable);
+        return channelMemberRepository.findByUser_Uuid(userUuid, pageable);
     }
 
     @Override

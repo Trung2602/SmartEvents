@@ -12,4 +12,9 @@ public interface ChannelService {
     Channel getChannelByUUID(UUID uuid);
     void deleteChannel(Channel channel);
     Page<Channel> getChannelsByOwner(UUID ownerUuid, int page, int size);
+    public void increaseFollowerCount(UUID uuid);
+    public void decreaseFollowerCount(UUID uuid);
+    public void increaseEventCount(UUID uuid);
+    public void decreaseEventCount(UUID uuid);
+    public void verifyChannel(UUID uuid);
 }

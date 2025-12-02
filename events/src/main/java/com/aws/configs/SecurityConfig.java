@@ -35,6 +35,10 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/secure/profile").permitAll()
                         .requestMatchers("/api/register/account").permitAll()
+                        .requestMatchers("/api/channel-update").permitAll()
+                        .requestMatchers("/api/channels/**").permitAll()
+                        .requestMatchers("/api/channel-delete/**").permitAll()
+                        .requestMatchers("/api/channel-member").permitAll()
                         .anyRequest().authenticated())
                 .addFilterBefore(jwtFilter(), UsernamePasswordAuthenticationFilter.class);
         return http.build();

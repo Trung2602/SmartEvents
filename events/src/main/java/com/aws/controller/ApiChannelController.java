@@ -1,10 +1,10 @@
 package com.aws.controller;
 
 
-import com.aws.pojo.Account;
 import com.aws.pojo.Channel;
 import com.aws.services.ChannelService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,14 +18,16 @@ public class ApiChannelController {
     private ChannelService channelService;
 
     @GetMapping("/channels/{ownerUuid}")
-    public ResponseEntity<?> getChannelsByOwner(@PathVariable UUID ownerUuid,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        return (ResponseEntity<?>) channelService.getChannelsByOwner(ownerUuid, page, size);
+    public ResponseEntity<Page<Channel>> getChannelsByOwner(@PathVariable UUID ownerUuid,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size) {
+        Page<Channel> channels = channelService.getChannelsByOwner(ownerUuid, page, size);
+        return ResponseEntity.ok(channels);
     }
 
     @PostMapping("/channel-update")
     public ResponseEntity<Channel> createOrUpdateChannel(@RequestBody Channel channel) {
+        Channel c= channelService.addOrUpdateChannel(channel);
         return ResponseEntity.ok(channelService.addOrUpdateChannel(channel));
     }
 

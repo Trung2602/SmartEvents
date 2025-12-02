@@ -1,6 +1,5 @@
 package com.aws.dto;
 
-
 import lombok.Data;
 
 @Data
