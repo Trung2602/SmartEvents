@@ -1,6 +1,7 @@
 package com.aws.services;
 
 import com.aws.pojo.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
 
@@ -15,4 +16,5 @@ public interface PageService {
     public void increaseEventCount(UUID uuid);
     public void decreaseEventCount(UUID uuid);
     public void verifyPage(UUID uuid);
+    org.springframework.data.domain.Page<Page> getAllPages(Pageable pageable);
 }

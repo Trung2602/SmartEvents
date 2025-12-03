@@ -40,12 +40,12 @@ public class PageFollowerServiceImpl implements PageFollowerService {
     @Override
     public Page<PageFollower> getPageFollowersByPageUuid(UUID channelUuid, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return pageFollowerRepository.findByPage_Uuid(channelUuid, pageable);
+        return pageFollowerRepository.findByPageUuid(channelUuid, pageable);
     }
 
     @Override
     public Page<PageFollower> getPageFollowersByFollowerUuid(UUID followerlUuid, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return pageFollowerRepository.findByFollower_Uuid(followerlUuid, pageable);
+        return pageFollowerRepository.findByFollowerUuid(followerlUuid, pageable);
     }
 }

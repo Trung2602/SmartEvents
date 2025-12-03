@@ -11,7 +11,7 @@ import java.util.UUID;
 @Repository
 public interface PageMemberRepository extends JpaRepository<PageMember, UUID> {
 
-    Page<PageMember> findByPage_Uuid(UUID pageUuid, Pageable pageable);
-    Page<PageMember> findByUser_Uuid(UUID userUuid, Pageable pageable);
+    Page<PageMember> findByPageUuid(UUID pageUuid, Pageable pageable);
+    Page<PageMember> findByUserUuid(UUID userUuid, Pageable pageable);
     Page<PageMember> findByInvitationStatus(String invitationStatus, Pageable pageable);
 }

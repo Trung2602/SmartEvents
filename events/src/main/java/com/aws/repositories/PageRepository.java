@@ -12,5 +12,5 @@ public interface PageRepository extends JpaRepository<Page, UUID> {
 
     org.springframework.data.domain.Page<Page> findByName(String name, Pageable pageable);
 
-    org.springframework.data.domain.Page<Page> findByOwner_Uuid(UUID ownerUuid, Pageable pageable);
+    org.springframework.data.domain.Page<Page> findByOwnerUuid(UUID ownerUuid, Pageable pageable);
 }

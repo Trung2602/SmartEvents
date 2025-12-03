@@ -5,6 +5,7 @@ import com.aws.services.PageFollowerService;
 import com.aws.services.PageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,8 +29,8 @@ public class ApiPageFollowerController {
     }
 
     // Tạo hoặc cập nhật PageFollower
-    @PostMapping("/page-follower-update/")
-    public ResponseEntity<PageFollower> addOrUpdatePageFollower(@RequestBody PageFollower pageFollower) {
+    @PostMapping("/page-follower-update")
+    public ResponseEntity<?> addOrUpdatePageFollower(@RequestBody PageFollower pageFollower) {
         boolean isCreate = (pageFollower.getUuid() == null);
         PageFollower saved = pageFollowerService.addOrUpdatePageFollower(pageFollower);
         if (isCreate) {
@@ -47,7 +48,7 @@ public class ApiPageFollowerController {
         }
         UUID pageUuid = follower.getPageUuid();
         pageFollowerService.deletePageFollower(follower);
-        pageService.increaseFollowerCount(pageUuid);
+        pageService.decreaseFollowerCount(pageUuid);
         return ResponseEntity.noContent().build();
     }
 

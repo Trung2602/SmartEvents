@@ -36,13 +36,13 @@ public class PageMemberServiceImpl implements PageMemberService {
     @Override
     public Page<PageMember> getPageMembersByPageUuid(UUID pageUuid, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return pageMemberRepository.findByPage_Uuid(pageUuid, pageable);
+        return pageMemberRepository.findByPageUuid(pageUuid, pageable);
     }
 
     @Override
     public Page<PageMember> getPageMembersByUserUuid(UUID userUuid, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return pageMemberRepository.findByUser_Uuid(userUuid, pageable);
+        return pageMemberRepository.findByUserUuid(userUuid, pageable);
     }
 
     @Override

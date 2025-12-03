@@ -3,6 +3,9 @@ package com.aws.controller;
 import com.aws.pojo.Page;
 import com.aws.services.PageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,5 +39,15 @@ public class ApiPageController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/pages")
+    public ResponseEntity<org.springframework.data.domain.Page<Page>> getAllPages(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        org.springframework.data.domain.Page<Page> pages = pageService.getAllPages(pageable);
+        return ResponseEntity.ok(pages);
     }
 }

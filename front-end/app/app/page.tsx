@@ -14,7 +14,7 @@ import { FEATURED_EVENTS } from '@/lib/constants';
 import SearchTool from './feature/SearchTool';
 import DateControls from './feature/DateControls';
 import ViewToggle from './feature/View';
-import ChannelPage from './pages/Channels';
+import ChannelPage from './pages/Pages';
 
 // Data constants
 const ALL_CATEGORIES = ['All', 'Music', 'Tech', 'Art', 'Gaming', 'Education', 'Business', 'Food', 'Sports', 'Health', 'Fashion'];

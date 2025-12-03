@@ -12,6 +12,6 @@ import java.util.UUID;
 public interface PageFollowerRepository extends JpaRepository<PageFollower, UUID> {
 
     Page<PageFollower> findByNotificationEnabled(Boolean enabled, Pageable pageable);
-    Page<PageFollower> findByPage_Uuid(UUID pageUuid, Pageable pageable);
-    Page<PageFollower> findByFollower_Uuid(UUID followerUuid, Pageable pageable);
+    Page<PageFollower> findByPageUuid(UUID pageUuid, Pageable pageable);
+    Page<PageFollower> findByFollowerUuid(UUID followerUuid, Pageable pageable);
 }

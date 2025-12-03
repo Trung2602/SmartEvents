@@ -9,15 +9,15 @@ import java.util.UUID;
 
 public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> {
 
-    UserProfile findByAccount(Account account);
-
-    UserProfile findByAccountUuid(UUID accountUuid);
-
-    Page<UserProfile> findByFirstNameContainingIgnoreCase(String firstName);
-
-    Page<UserProfile> findByLastNameContainingIgnoreCase(String lastName);
-
-    Page<UserProfile> findByCity(String city);
-
-    Page<UserProfile> findByCityContainingIgnoreCase(String city);
+//    UserProfile findByAccount(Account account);
+//
+//    UserProfile findByAccountUuid(UUID accountUuid);
+//
+//    Page<UserProfile> findByFirstNameContainingIgnoreCase(String firstName);
+//
+//    Page<UserProfile> findByLastNameContainingIgnoreCase(String lastName);
+//
+//    Page<UserProfile> findByCity(String city);
+//
+//    Page<UserProfile> findByCityContainingIgnoreCase(String city);
 }

@@ -22,6 +22,6 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
     Page<Notification> findByExpiresAtBefore(LocalDateTime now, Pageable pageable);
 
     // Có thể thêm các query khác theo nhu cầu, ví dụ lọc theo type hoặc priority
-    Page<Notification> findByUserUuidAndNotificationType(UUID userUuid, String notificationType);
+    //Page<Notification> findByUserUuidAndNotificationType(UUID userUuid, String notificationType);
 
 }

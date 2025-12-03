@@ -54,7 +54,7 @@ public class PageServiceImpl implements PageService {
     @Override
     public org.springframework.data.domain.Page<Page> getPagesByOwner(UUID ownerUuid, int page, int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return pageRepository.findByOwner_Uuid(ownerUuid, pageable);
+        return pageRepository.findByOwnerUuid(ownerUuid, pageable);
     }
 
     @Override
@@ -102,4 +102,10 @@ public class PageServiceImpl implements PageService {
             pageRepository.save(page);
         });
     }
+
+    @Override
+    public org.springframework.data.domain.Page<Page> getAllPages(Pageable pageable) {
+        return pageRepository.findAll(pageable);
+    }
+
 }

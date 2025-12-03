@@ -11,17 +11,20 @@
   }
 
   interface ChannelDetailProps {
-  channel: {
-    name: string;
-    type: string;
-    followers: number;
-    coverImage: string;
-    avatar: string;
-  };
-  events: Event[];
+    page: {
+      uuid: string;
+      name: string;
+      pageType: string;
+      followerCount: number;
+      coverImageUrl: string;
+      avatarUrl: string;
+      description: string;
+    };
+    events: Event[];
   }
 
-  export default function ChannelDetail({ channel, events }: ChannelDetailProps) {
+
+  export default function ChannelDetail({ page, events }: ChannelDetailProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
 
   return (
@@ -29,23 +32,25 @@
       {/* Cover Image */}
       <div className="relative">
         <img
-          src={channel.coverImage}
+          src={page.coverImageUrl}
           alt="Cover"
           className="w-full h-56 object-cover rounded-b"
         />
-        {/* Avatar + info */}
+
+        {/* Avatar + Info */}
         <div className="absolute -bottom-12 left-6 flex items-center gap-4">
           <img
-            src={channel.avatar}
+            src={page.avatarUrl}
             alt="Avatar"
             className="w-24 h-24 rounded-full border-4 border-white dark:border-gray-900"
           />
           <div className="bg-white dark:bg-[#111] p-4 rounded shadow w-[400px]">
-            <h2 className="text-xl font-semibold">{channel.name}</h2>
-            <p className="text-gray-500 dark:text-gray-400">{channel.type}</p>
+            <h2 className="text-xl font-semibold">{page.name}</h2>
+            <p className="text-gray-500 dark:text-gray-400">{page.pageType}</p>
             <p className="text-gray-500 dark:text-gray-400">
-              {channel.followers.toLocaleString()} followers
+              {page.followerCount.toLocaleString()} followers
             </p>
+            <p className="text-gray-600 dark:text-gray-300 mt-2">{page.description}</p>
           </div>
         </div>
       </div>
@@ -55,7 +60,7 @@
 
       {/* Content: Events + Calendar */}
       <div className="flex gap-6">
-        {/* Events - 2/3 width */}
+        {/* Events */}
         <div className="flex-2 grid grid-cols-1 md:grid-cols-2 gap-6">
           {events.map(event => (
             <div
@@ -68,7 +73,7 @@
           ))}
         </div>
 
-        {/* Calendar - 1/3 width */}
+        {/* Calendar */}
         <div className="flex-1">
           <Calendar
             onChange={(date) => setSelectedDate(date as Date)}

@@ -44,20 +44,47 @@ public class ApiAccountController {
         return new ResponseEntity<>(this.accountService.getAccountByEmail(principal.getName()), HttpStatus.OK);
     }
 
+//    @PostMapping("/register/account")
+//    public ResponseEntity<?> addUser(@ModelAttribute AccountDTO a) {
+//        try {
+//            if(a.getRole() == null || a.getRole().isBlank()){
+//                return ResponseEntity.badRequest().body("Role can not be empty!");
+//            }
+//
+//            Account account = new Account();
+//            account.setRole(Account.Role.valueOf(a.getRole()));
+//            account.setPasswordHash(a.getPassword());
+//            account.setName(a.getName());
+//            account.setEmail(a.getEmail());
+//            if(a.getAvatarUrl()!=null || !a.getAvatarUrl().isBlank())
+//                account.setAvatarUrl(a.getAvatarUrl());
+//
+//            Account accountSaved = this.accountService.addOrUpdateAccount(account);
+//
+//            return ResponseEntity.ok(accountSaved);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body("Error to create new User: " + e.getMessage());
+//        }
+//    }
+
     @PostMapping("/register/account")
-    public ResponseEntity<?> addUser(@ModelAttribute AccountDTO a) {
+    public ResponseEntity<?> addUser(@RequestBody AccountDTO a) {
         try {
-            if(a.getRole() == null || a.getRole().isBlank()){
+            if (a.getRole() == null || a.getRole().isBlank()) {
                 return ResponseEntity.badRequest().body("Role can not be empty!");
             }
 
             Account account = new Account();
-            account.setRole(Account.Role.valueOf(a.getRole()));
+            account.setRole(Account.Role.valueOf(a.getRole().toUpperCase())); // đảm bảo enum match
             account.setPasswordHash(a.getPassword());
             account.setName(a.getName());
             account.setEmail(a.getEmail());
-            if(a.getAvatarUrl()!=null || !a.getAvatarUrl().isBlank())
+
+            if (a.getAvatarUrl() != null && !a.getAvatarUrl().isBlank()) {
                 account.setAvatarUrl(a.getAvatarUrl());
+            }
 
             Account accountSaved = this.accountService.addOrUpdateAccount(account);
 
@@ -68,4 +95,5 @@ public class ApiAccountController {
                     .body("Error to create new User: " + e.getMessage());
         }
     }
+
 }
