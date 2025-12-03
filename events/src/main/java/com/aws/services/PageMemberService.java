@@ -6,7 +6,7 @@ import org.springframework.data.domain.Page;
 import java.util.UUID;
 
 public interface PageMemberService {
-    PageMember addOrUpdatePageMember(PageMember pageMember);
+    PageMember addOrUpdatePageMember(PageMember member);
     void deletePageMember(PageMember pageMember);
     PageMember findPageMemberByUuid(UUID uuid);
     Page<PageMember> getPageMembersByPageUuid(UUID pageUuid, int page, int size);

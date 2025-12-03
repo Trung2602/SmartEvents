@@ -17,16 +17,15 @@ public class ApiPageController {
 
     @GetMapping("/pages/{ownerUuid}")
     public ResponseEntity<org.springframework.data.domain.Page<Page>> getPagesByOwner(@PathVariable UUID ownerUuid,
-                                                                                      @RequestParam(defaultValue = "0") int page,
-                                                                                      @RequestParam(defaultValue = "10") int size) {
-        org.springframework.data.domain.Page<Page> channels = pageService.getPagesByOwner(ownerUuid, page, size);
-        return ResponseEntity.ok(channels);
+              @RequestParam(defaultValue = "0") int page,
+              @RequestParam(defaultValue = "10") int size) {
+        org.springframework.data.domain.Page<Page> pages = pageService.getPagesByOwner(ownerUuid, page, size);
+        return ResponseEntity.ok(pages);
     }
 
     @PostMapping("/page-update")
     public ResponseEntity<Page> createOrUpdatePage(@RequestBody Page page) {
-        Page c= pageService.addOrUpdatePage(page);
-        return ResponseEntity.ok(pageService.addOrUpdatePage(c));
+        return ResponseEntity.ok(this.pageService.addOrUpdatePage(page));
     }
 
     @DeleteMapping("/page-delete/{uuid}")

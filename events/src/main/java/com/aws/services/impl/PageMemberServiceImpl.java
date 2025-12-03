@@ -24,6 +24,7 @@ public class PageMemberServiceImpl implements PageMemberService {
 
     @Override
     public void deletePageMember(PageMember pageMember) {
+
         this.pageMemberRepository.delete(pageMember);
     }
 

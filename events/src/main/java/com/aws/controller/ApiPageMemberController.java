@@ -1,6 +1,5 @@
 package com.aws.controller;
 
-import com.aws.dto.PageMemberDTO;
 import com.aws.pojo.PageMember;
 import com.aws.services.PageMemberService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,7 +48,7 @@ public class ApiPageMemberController {
 
     // POST: tạo hoặc cập nhật member
     @PostMapping("/page-member")
-    public ResponseEntity<PageMember> createOrUpdatePageMember(@RequestBody PageMemberDTO member) {
+    public ResponseEntity<PageMember> createOrUpdatePageMember(@RequestBody PageMember member) {
         PageMember pageMember = new PageMember();
         return ResponseEntity.ok(pageMemberService.addOrUpdatePageMember(pageMember));
     }

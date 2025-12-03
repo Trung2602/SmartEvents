@@ -22,14 +22,16 @@ public class PageMember {
     @Column(name = "user_uuid", nullable = false)
     private UUID userUuid;
 
-    @Column(length = 50)
-    private String role;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 15)
+    private Role role = Role.MEMBER;
 
     @Column(columnDefinition = "jsonb")
     private String permissions;
 
-    @Column(name = "invitation_status")
-    private String invitationStatus;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "invitation_status", length = 15)
+    private InvitationStatus invitationStatus =InvitationStatus.PENDING;
 
     @Column(name = "invited_by")
     private UUID invitedBy;
@@ -42,4 +44,12 @@ public class PageMember {
 
     @Column(name = "left_at")
     private LocalDateTime leftAt;
+
+    public enum Role {
+        ADMIN, MODERATOR, EDITOR, MEMBER
+    }
+
+    public enum InvitationStatus {
+        PENDING, ACCEPTED, DECLINED, REMOVED
+    }
 }

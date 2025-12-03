@@ -1,23 +1,23 @@
 package com.aws.repositories;
 
 import com.aws.pojo.Account;
-import com.aws.pojo.User;
+import com.aws.pojo.UserProfile;
 import org.springframework.data.domain.Page;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.UUID;
 
-public interface UserRepository extends JpaRepository<User, UUID> {
+public interface UserProfileRepository extends JpaRepository<UserProfile, UUID> {
 
-//    User findByAccount(Account account);
-//
-//    User findByAccountUuid(UUID accountUuid);
-//
-//    Page<User> findByFirstNameContainingIgnoreCase(String firstName);
-//
-//    Page<User> findByLastNameContainingIgnoreCase(String lastName);
-//
-//    Page<User> findByCity(String city);
-//
-//    Page<User> findByCityContainingIgnoreCase(String city);
+    UserProfile findByAccount(Account account);
+
+    UserProfile findByAccountUuid(UUID accountUuid);
+
+    Page<UserProfile> findByFirstNameContainingIgnoreCase(String firstName);
+
+    Page<UserProfile> findByLastNameContainingIgnoreCase(String lastName);
+
+    Page<UserProfile> findByCity(String city);
+
+    Page<UserProfile> findByCityContainingIgnoreCase(String city);
 }

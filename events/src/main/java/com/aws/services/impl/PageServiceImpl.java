@@ -33,19 +33,22 @@ public class PageServiceImpl implements PageService {
 
     @Override
     public Page addOrUpdatePage(Page page) {
-        return this.pageRepository.save(page);
-    }
+        if (page.getUuid() == null) {
+            //create
 
-    @Override
-    public Page getPageByUUID(UUID uuid) {
-        Optional<Page> page = this.pageRepository.findById(uuid);
-        return page.orElse(null);
+        } else {
+            //update
+        }
+        return this.pageRepository.save(page);
     }
 
     @Transactional
     @Override
     public void deletePage(Page page) {
+
         this.pageRepository.delete(page);
+
+        //Tìm các member và follower để xóa theo luôn
     }
 
     @Override

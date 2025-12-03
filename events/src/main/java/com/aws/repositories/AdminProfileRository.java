@@ -1,12 +1,12 @@
 package com.aws.repositories;
 
 
-import com.aws.pojo.Admin;
+import com.aws.pojo.AdminProfile;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.UUID;
 
 @Repository
-public interface AdminRepository extends JpaRepository<Admin, UUID> {
+public interface AdminProfileRository extends JpaRepository<AdminProfile, UUID> {
 }

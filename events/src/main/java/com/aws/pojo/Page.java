@@ -28,8 +28,9 @@ public class Page {
     @Column(length = 500)
     private String description;
 
-    @Column(name = "page_type", length = 50)
-    private String pageType;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "page_type", length = 20)
+    private PageType pageType = PageType.PERSONAL;
 
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
@@ -49,8 +50,9 @@ public class Page {
     @Column(name = "event_count")
     private Integer eventCount = 0;
 
-    @Column(length = 50)
-    private String status = "ACTIVE";
+    @Enumerated(EnumType.STRING)
+    @Column(length = 15)
+    private PageStatus status = PageStatus.ACTIVE;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -70,5 +72,13 @@ public class Page {
     @PreUpdate
     public void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public enum PageType {
+        PERSONAL, ORGANIZATION, BUSINESS, COMMUNITY
+    }
+
+    public enum PageStatus {
+        ACTIVE, SUSPENDED, DELETED
     }
 }
