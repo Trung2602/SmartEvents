@@ -14,6 +14,7 @@ import { FEATURED_EVENTS } from '@/lib/constants';
 import SearchTool from './feature/SearchTool';
 import DateControls from './feature/DateControls';
 import ViewToggle from './feature/View';
+import ChannelPage from './pages/Pages';
 
 // Data constants
 const ALL_CATEGORIES = ['All', 'Music', 'Tech', 'Art', 'Gaming', 'Education', 'Business', 'Food', 'Sports', 'Health', 'Fashion'];
@@ -32,6 +33,8 @@ export default function Home() {
   const [dateFilter, setDateFilter] = useState<DateFilter>({ start: '', end: '', isAuto: true });
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
+  //conditional rendering page 
+  const [currentPage, setCurrentPage] = useState<'home' | 'channel'>('home');
 
   // Refs for clicking outside dropdowns
   const moreCatRef = useRef<HTMLDivElement>(null);
@@ -105,8 +108,12 @@ export default function Home() {
   return (
     <div className="flex min-h-screen bg-white min-h-screen bg-white dark:bg-[#050505] transition-all duration-200">
       {/* Sidebar - Fixed on left */}
-      <Sidebar onNavChange={setCurrentTitle} />
-
+      {/* <Sidebar onNavChange={setCurrentTitle} /> */}
+      <Sidebar onNavChange={(label) => {
+        setCurrentTitle(label);
+        if (label === 'Channel') setCurrentPage('channel');
+        else setCurrentPage('home');
+      }} />
       {/* Main content area */}
       <div className="flex-1 flex flex-col ml-56 min-h-screen dark:!bg-[#0a0a0a]">
         {/* Header - Fixed on top */}
@@ -114,6 +121,8 @@ export default function Home() {
 
         {/* Main content */}
         <main className="flex-1 animate-in fade-in duration-300 slide-in-from-bottom-2">
+          {currentPage === 'home' ? (
+          <>
           <div className="p-6 md:p-10 max-w-7xl mx-auto">
             {/* Top Filters */}
             <div className="flex flex-col xl:flex-row gap-6 mb-8 items-start xl:items-center justify-between">
@@ -225,6 +234,10 @@ export default function Home() {
               </>
             )}
           </div>
+          </>
+          ) : (
+            <ChannelPage />
+          )}
         </main>
         <Footer theme={theme} setTheme={handleSetTheme} />
       </div>

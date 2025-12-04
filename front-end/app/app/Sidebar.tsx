@@ -1,6 +1,6 @@
 'use client';
 
-import { Compass, Bookmark, User, Footprints, Settings, MessageCircleQuestion, LucideIcon, Heart } from 'lucide-react';
+import { Compass, Bookmark, User, Footprints, Settings, MessageCircleQuestion, LucideIcon, Heart, MessageCircle } from 'lucide-react';
 import Link from 'next/link';
 import { ElementType, useState } from 'react';
 
@@ -29,6 +29,7 @@ export default function Sidebar({ onNavChange }: { onNavChange?: (label: string)
 
   const navItems = [
     { label: 'Discover', icon: Compass },
+    { label: 'Channel', icon: MessageCircle },
     { label: 'Bookmarks', icon: Heart },
     { label: 'Profile', icon: User },
     { label: 'Activity', icon: Footprints },
