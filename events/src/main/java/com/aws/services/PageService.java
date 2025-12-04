@@ -17,4 +17,5 @@ public interface PageService {
     public void decreaseEventCount(UUID uuid);
     public void verifyPage(UUID uuid);
     org.springframework.data.domain.Page<Page> getAllPages(Pageable pageable);
+    Page getPageDetail(UUID pageUuid);
 }

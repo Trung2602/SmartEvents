@@ -108,4 +108,9 @@ public class PageServiceImpl implements PageService {
         return pageRepository.findAll(pageable);
     }
 
+    public Page getPageDetail(UUID pageUuid) {
+        return pageRepository.findById(pageUuid)
+                .orElseThrow(() -> new RuntimeException("Page not found"));
+    }
+
 }

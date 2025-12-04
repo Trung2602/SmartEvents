@@ -18,12 +18,18 @@ public class ApiPageController {
     @Autowired
     private PageService pageService;
 
-    @GetMapping("/pages/{ownerUuid}")
+    @GetMapping("/pages/owner/{ownerUuid}")
     public ResponseEntity<org.springframework.data.domain.Page<Page>> getPagesByOwner(@PathVariable UUID ownerUuid,
               @RequestParam(defaultValue = "0") int page,
               @RequestParam(defaultValue = "10") int size) {
         org.springframework.data.domain.Page<Page> pages = pageService.getPagesByOwner(ownerUuid, page, size);
         return ResponseEntity.ok(pages);
+    }
+
+    @GetMapping("/page-detail/{Uuid}")
+    public ResponseEntity<Page> getPageDetail(@PathVariable UUID Uuid) {
+        Page page = pageService.getPageDetail(Uuid);
+        return ResponseEntity.ok(page);
     }
 
     @PostMapping("/page-update")
@@ -46,8 +52,10 @@ public class ApiPageController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size
     ) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        // Sắp xếp theo updatedAt giảm dần
+        Pageable pageable = PageRequest.of(page, size, Sort.by("updatedAt").descending());
         org.springframework.data.domain.Page<Page> pages = pageService.getAllPages(pageable);
         return ResponseEntity.ok(pages);
     }
+
 }
