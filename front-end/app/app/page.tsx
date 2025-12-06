@@ -260,7 +260,7 @@ export default function Home() {
           ) : currentPage === 'profile' ? (
             <ProfilePane />
           ) : (
-            <ChannelPage />
+            <Page />
           )}
         </main>
         <Footer theme={theme} setTheme={handleSetTheme} />

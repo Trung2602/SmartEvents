@@ -209,3 +209,57 @@ footer a:hover {
     @apply bg-background text-foreground;
   }
 }
+
+
+/* Nền tổng thể calendar */
+.react-calendar {
+  background-color: var(--card);
+  color: var(--foreground);
+  font-family: Arial, sans-serif;
+  font-weight: 700;
+  border: none;
+}
+
+/* Header (tháng, năm, mũi tên) */
+.react-calendar__navigation {
+  background-color: var(--card);
+  color: var(--foreground);
+  font-weight: 700;
+  border: none;
+}
+
+/* Button mũi tên next/prev */
+.react-calendar__navigation button {
+  color: var(--foreground);
+}
+
+/* Month/Week labels */
+.react-calendar__month-view__weekdays {
+  background-color: var(--card);
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+/* Ô ngày */
+.react-calendar__tile {
+  background: transparent;
+  color: var(--foreground);
+  font-weight: 700;
+}
+
+/* Ngày hôm nay */
+.react-calendar__tile--now {
+  background: var(--primary)/20;
+  color: var(--primary-foreground);
+}
+
+/* Ngày được chọn */
+.react-calendar__tile--active {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* Hover effect */
+.react-calendar__tile:hover {
+  background: var(--primary)/30;
+}
