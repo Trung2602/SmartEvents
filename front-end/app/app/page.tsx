@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Header from '@/components/common/Header';
 import Sidebar from '@/app/app/Sidebar';
 import LoginView from '@/components/login-view';
@@ -15,6 +16,7 @@ import SearchTool from './feature/SearchTool';
 import DateControls from './feature/DateControls';
 import ViewToggle from './feature/View';
 import ChannelPage from './pages/Pages';
+import ProfilePane from './pages/Profile';
 
 // Data constants
 const ALL_CATEGORIES = ['All', 'Music', 'Tech', 'Art', 'Gaming', 'Education', 'Business', 'Food', 'Sports', 'Health', 'Fashion'];
@@ -34,11 +36,12 @@ export default function Home() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
 
   //conditional rendering page 
-  const [currentPage, setCurrentPage] = useState<'home' | 'channel'>('home');
+  const [currentPage, setCurrentPage] = useState<'home' | 'channel' | 'profile' | 'bookmarks'>('home');
 
   // Refs for clicking outside dropdowns
   const moreCatRef = useRef<HTMLDivElement>(null);
   const countryRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
 
   // Calculate hidden categories for the "More" dropdown
   const hiddenCategories = ALL_CATEGORIES.filter(c => !visibleCategories.includes(c));
@@ -90,6 +93,11 @@ export default function Home() {
   }, [theme]);
 
   useEffect(() => {
+    // set current page from query param (e.g. /app?pane=profile)
+    const pane = searchParams?.get('pane');
+    if (pane === 'profile') setCurrentPage('profile');
+    if (pane === 'bookmarks') setCurrentPage('bookmarks');
+
     const handleClickOutside = (event: MouseEvent) => {
 
         if (moreCatRef.current && !moreCatRef.current.contains(event.target as Node)) {
@@ -109,15 +117,27 @@ export default function Home() {
     <div className="flex min-h-screen bg-white min-h-screen bg-white dark:bg-[#050505] transition-all duration-200">
       {/* Sidebar - Fixed on left */}
       {/* <Sidebar onNavChange={setCurrentTitle} /> */}
-      <Sidebar onNavChange={(label) => {
-        setCurrentTitle(label);
-        if (label === 'Channel') setCurrentPage('channel');
-        else setCurrentPage('home');
-      }} />
+      {/* compute a label for sidebar active state from currentPage */}
+      <Sidebar
+        active={currentPage === 'home' ? 'Discover' : currentPage === 'channel' ? 'Channel' : currentPage === 'profile' ? 'Profile' : currentPage === 'bookmarks' ? 'Bookmarks' : 'Discover'}
+        onNavChange={(label) => {
+          setCurrentTitle(label);
+          if (label === 'Channel') setCurrentPage('channel');
+          else if (label === 'Profile') setCurrentPage('profile');
+          else if (label === 'Bookmarks') setCurrentPage('bookmarks');
+          else setCurrentPage('home');
+        }}
+      />
       {/* Main content area */}
       <div className="flex-1 flex flex-col ml-56 min-h-screen dark:!bg-[#0a0a0a]">
         {/* Header - Fixed on top */}
-        <Header title={currentTitle} />
+        <Header title={currentTitle} onNavigate={(label: string) => {
+          setCurrentTitle(label);
+          if (label === 'Channel') setCurrentPage('channel');
+          else if (label === 'Profile') setCurrentPage('profile');
+          else if (label === 'Bookmarks') setCurrentPage('bookmarks');
+          else setCurrentPage('home');
+        }} />
 
         {/* Main content */}
         <main className="flex-1 animate-in fade-in duration-300 slide-in-from-bottom-2">
@@ -235,6 +255,10 @@ export default function Home() {
             )}
           </div>
           </>
+          ) : currentPage === 'channel' ? (
+            <ChannelPage />
+          ) : currentPage === 'profile' ? (
+            <ProfilePane />
           ) : (
             <ChannelPage />
           )}
