@@ -24,8 +24,13 @@ function NavButton({ label, Icon, isActive, onClick }: NavButtonProps) {
   );
 }
 
-export default function Sidebar({ onNavChange }: { onNavChange?: (label: string) => void }) {
-  const [activeNav, setActiveNav] = useState('Discover');
+export default function Sidebar({ onNavChange, active }: { onNavChange?: (label: string) => void, active?: string }) {
+  const [activeNav, setActiveNav] = useState(active ?? 'Discover');
+
+  // keep internal state in sync when parent controls active
+  if (active && active !== activeNav) {
+    setActiveNav(active);
+  }
 
   const navItems = [
     { label: 'Discover', icon: Compass },
@@ -43,6 +48,7 @@ export default function Sidebar({ onNavChange }: { onNavChange?: (label: string)
   const handleNavClick = (label: string) => {
     setActiveNav(label);
     onNavChange?.(label);
+    // parent handles in-app navigation via onNavChange
   };
 
   return (

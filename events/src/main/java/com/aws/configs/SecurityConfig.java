@@ -35,6 +35,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/login").permitAll()
                         .requestMatchers("/api/secure/profile").permitAll()
                         .requestMatchers("/api/register/account").permitAll()
+                        .requestMatchers("/api/user/verify-email").permitAll()
                         .requestMatchers("/api/page-update").permitAll()
                         .requestMatchers("/api/page-delete/**").permitAll()
                         .requestMatchers("/api/page-detail/**").permitAll()

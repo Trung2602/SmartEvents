@@ -37,7 +37,10 @@ public class AccountServiceImpl implements AccountService {
     public Account addOrUpdateAccount(Account a) {
         if(a.getPasswordHash() != null && !a.getPasswordHash().isEmpty())
         {
-            a.setPasswordHash(this.passwordEncoder.encode(a.getPasswordHash()));
+            String pwd = a.getPasswordHash();
+            if (!pwd.startsWith("$2a$") && !pwd.startsWith("$2b$")) {
+                a.setPasswordHash(passwordEncoder.encode(pwd));
+            }
         }else if(a.getEmail() != null)
         {
             Optional<Account> userSaved = this.accountRepository.findByEmail(a.getEmail());
@@ -52,37 +55,7 @@ public class AccountServiceImpl implements AccountService {
         return account.orElse(null);
     }
 
-    @Override
-    public Page<Account> searchAccountsByName(String name, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id"));
-        return this.accountRepository.findByName(name, pageable);
-    }
 
-    @Override
-    public Page<Account> searchAccountsByRole(String role, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("id"));
-        return this.accountRepository.findByRole(Account.Role.valueOf(role), pageable);
-    }
-
-    @Transactional
-    @Override
-    public void deactivateAccount(UUID userId) {
-        Account acc = accountRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        acc.setIsActive(false);
-        accountRepository.save(acc);
-    }
-
-    @Transactional
-    @Override
-    public void activateAccount(UUID userId) {
-        Account acc = accountRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
-
-        acc.setIsActive(true);
-        accountRepository.save(acc);
-    }
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -108,5 +81,16 @@ public class AccountServiceImpl implements AccountService {
             return passwordEncoder.matches(password, account.getPasswordHash());
         }
         return false;
+    }
+
+    @Override
+    public void deleteAccount(Account a) {
+        this.accountRepository.delete(a);
+    }
+
+    @Override
+    public Page<Account> findAllAccount(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return this.accountRepository.findAll(pageable);
     }
 }

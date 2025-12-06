@@ -1,6 +1,70 @@
-import { Button } from "../ui/button";
+"use client";
 
-export default function Login() {
+import { Button } from "../ui/button";
+import { useState, useContext } from "react";
+import { setCookie } from "cookies-next";
+import api from "@/lib/APIs";
+import { AuthContext } from '@/context/AuthContext';
+import { toast } from 'sonner';
+
+type LoginProps = {
+  onSuccess?: () => void;
+};
+
+export default function Login({ onSuccess }: LoginProps) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showOtpModal, setShowOtpModal] = useState(false);
+  const [otp, setOtp] = useState('');
+  const { signIn } = useContext(AuthContext);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+
+    try {
+      await signIn(email, password);
+      console.log("Đăng nhập thành công");
+      toast.success('Đăng nhập thành công');
+      onSuccess?.();
+    } catch (err: any) {
+      const msg = err.response?.data || err.response?.data?.message || err.message;
+      // If backend indicates email not verified, open OTP modal
+      if (err.response?.status === 403 && typeof msg === 'string' && msg.toLowerCase().includes('email not verified')) {
+        toast.info('Email chưa xác thực. Mã OTP đã được gửi, vui lòng kiểm tra email.');
+        setShowOtpModal(true);
+        return;
+      }
+
+      alert(msg || "Đăng nhập thất bại!");
+    }
+  }
+
+  const handleOtpSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otp) return toast.error('Vui lòng nhập mã OTP');
+    try {
+      // call verify endpoint
+      const res = await api.post('/user/verify-email', null, { params: { email, otp } });
+      toast.success(res.data?.message || 'Xác thực thành công');
+      setShowOtpModal(false);
+
+      // re-attempt login now that email is verified
+      try {
+        await signIn(email, password);
+        toast.success('Đăng nhập thành công');
+        onSuccess?.();
+      } catch (loginErr: any) {
+        console.error('login after verify failed', loginErr);
+        toast.error(loginErr.response?.data?.message || loginErr.message || 'Đăng nhập tự động thất bại');
+      }
+
+    } catch (err: any) {
+      console.error('otp verify error', err);
+      toast.error(err.response?.data?.message || err.message || 'Xác thực không thành công');
+    }
+  };
+
+
   return (
     <div className="p-8 text-zinc-900 dark:text-white">
       <div className="mb-6">
@@ -9,15 +73,15 @@ export default function Login() {
         <p className="text-zinc-500 mt-1">Log in to your Account</p>
       </div>
 
-      <form className="space-y-4">
+      <form onSubmit={handleLogin} className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Username or email</label>
-          <input type="text" placeholder="Enter your email" className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-black focus:ring-2 focus:ring-indigo-500 outline-none" />
+          <input value={email} onChange={(e) => setEmail(e.target.value)} type="text" placeholder="Enter your email" className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-black focus:ring-2 focus:ring-indigo-500 outline-none" />
         </div>
 
         <div>
           <label className="block text-sm font-medium mb-1">Password</label>
-          <input type="password" placeholder="••••••••" className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-black focus:ring-2 focus:ring-indigo-500 outline-none" />
+          <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="••••••••" className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-black focus:ring-2 focus:ring-indigo-500 outline-none" />
         </div>
         <div className="flex items-center justify-between text-sm">
           <label className="flex items-center gap-2 cursor-pointer">
@@ -30,6 +94,23 @@ export default function Login() {
         <Button type="submit" className="text-md rounded-lg py-[22px] w-full mt-4 bg-black dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-200 border border-transparent">Log in</Button>
       </form>
 
+      {showOtpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowOtpModal(false)} />
+          <div className="relative bg-white dark:bg-[#0b0b0b] rounded-lg p-6 w-full max-w-md z-10">
+            <h3 className="text-lg font-semibold mb-2">Nhập mã OTP</h3>
+            <p className="text-sm text-zinc-500 mb-4">Chúng tôi đã gửi mã OTP tới <strong>{email}</strong>. Vui lòng kiểm tra email và nhập mã.</p>
+            <form onSubmit={handleOtpSubmit} className="space-y-3">
+              <input value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="Enter OTP" className="w-full px-4 py-2 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-black outline-none" />
+              <div className="flex justify-end gap-2">
+                <button type="button" onClick={() => setShowOtpModal(false)} className="px-4 py-2 rounded-md border">Cancel</button>
+                <Button type="submit">Xác thực</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <div className="relative my-6">
         <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-zinc-200 dark:border-zinc-800"></div></div>
         <div className="relative flex justify-center text-xs uppercase"><span className="bg-white dark:bg-zinc-900 px-2 text-zinc-500">Or</span></div>
@@ -41,7 +122,7 @@ export default function Login() {
       </button>
 
       <div className="mt-6 text-center text-sm">
-          I don't have an account? <span className="text-indigo-500 cursor-pointer font-medium">Sign up for free</span>
+        I don't have an account? <span className="text-indigo-500 cursor-pointer font-medium">Sign up for free</span>
       </div>
     </div>
   );
