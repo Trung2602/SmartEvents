@@ -1,4 +1,4 @@
-package me.heahaidu.aws.fcj.eventservice.controller.dto;
+package me.heahaidu.aws.fcj.eventservice.controller.dto.response;
 
 import lombok.Builder;
 

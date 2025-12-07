@@ -1,7 +1,9 @@
-package me.heahaidu.aws.fcj.eventservice.repository.entity;
+package me.heahaidu.aws.fcj.eventservice.enums;
 
-import jakarta.persistence.Entity;
-
-@Entity
-public class EventStatus {
-  }
+public enum EventStatus {
+    DRAFT,
+    PENDING,
+    REJECTED,
+    PUBLISHED,
+    CANCELLED
+}
