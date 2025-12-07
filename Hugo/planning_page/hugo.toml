@@ -1,5 +1,6 @@
 baseURL = 'https://example.org/'
 languageCode = 'en-us'
-title = 'My New Hugo Site'
+defaultContentLanguage = "en"
 
+title = 'My New Hugo Site'
 theme = "learn"
