@@ -33,7 +33,7 @@
 │   ├── generate-sitemap.mjs
 │   └── typecheck.mjs
 ├── src/
-│   ├── app/                           # Each forlder have page.tsx will be a router
+│   ├── app/                           # Each folder have page.tsx will be a router
 │   │   ├── (marketing)/              
 │   │   │   ├── layout.tsx
 │   │   │   ├── page.tsx              

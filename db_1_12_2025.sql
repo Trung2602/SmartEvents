@@ -1,16 +1,50 @@
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+-- uuidv7 func
+CREATE OR REPLACE FUNCTION uuid_generate_v7()
+RETURNS uuid
+LANGUAGE sql
+AS $$
+  -- UUIDv7: 48-bit unix_ts_ms + version (7) + variant (10) + 80-bit random
+  SELECT (
+    lpad(to_hex(floor(extract(epoch from clock_timestamp()) * 1000)::bigint), 12, '0') ||
+    lpad(to_hex((get_byte(v, 0) & 15) | 112), 2, '0') ||  -- set version 0x7?
+    lpad(to_hex(get_byte(v, 1)), 2, '0') ||
+    lpad(to_hex(get_byte(v, 2)), 2, '0') ||
+    lpad(to_hex((get_byte(v, 3) & 63) | 128), 2, '0') ||  -- set variant 0b10xxxxxx
+    lpad(to_hex(get_byte(v, 4)), 2, '0') ||
+    lpad(to_hex(get_byte(v, 5)), 2, '0') ||
+    lpad(to_hex(get_byte(v, 6)), 2, '0') ||
+    lpad(to_hex(get_byte(v, 7)), 2, '0') ||
+    lpad(to_hex(get_byte(v, 8)), 2, '0')
+  )::uuid
+  FROM (SELECT gen_random_bytes(10) v) g;
+$$;
+
 -- =========================
 -- USER-SERVICE SCHEMA
 -- =========================
 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
 -- Core account - Single source of truth cho identity
 CREATE TABLE account (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     email VARCHAR(100) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL, -- Argon2id recommended
     role VARCHAR(10) DEFAULT 'USER',
-    is_active BOOLEAN DEFAULT TRUE,
+    email_verified BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login_at TIMESTAMP,
+    mfa_secret VARCHAR(32), -- For 2FA
+    mfa_enabled BOOLEAN DEFAULT FALSE,
+    CONSTRAINT check_role CHECK (role IN ('ADMIN', 'USER'))
+);
+
+CREATE TABLE account_disable (
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+    email VARCHAR(100) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL, -- Argon2id recommended
+    role VARCHAR(10) DEFAULT 'USER',
     email_verified BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -42,7 +76,7 @@ CREATE TABLE user_profile (
     avatar_url VARCHAR(500) CHECK (avatar_url ~ '^https?://'), -- URL validation
     bio TEXT CHECK (LENGTH(bio) <= 500),
     interests JSONB, -- Array of tags
-    social_links JSONB, -- {facebook, twitter, ...}
+    social_links JSONB, -- facebook, twitter, ...
     preferences JSONB, -- Notification settings, timezone
     privacy_settings JSONB, -- Profile visibility
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -58,7 +92,7 @@ CREATE INDEX idx_user_profile_city ON user_profile(city);
 
 -- Audit log cho security-critical operations
 CREATE TABLE account_audit_log (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     account_uuid UUID NOT NULL,
     action VARCHAR(50) NOT NULL, -- LOGIN, PASSWORD_CHANGE, EMAIL_CHANGE
     ip_address INET,
@@ -74,7 +108,7 @@ CREATE INDEX idx_audit_account ON account_audit_log(account_uuid, created_at DES
 
 -- Page entity (renamed from channel)
 CREATE TABLE page (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     owner_uuid UUID NOT NULL, -- NO FK! Store as UUID string
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(255) UNIQUE NOT NULL, -- SEO-friendly URL
@@ -105,7 +139,7 @@ CREATE TABLE page_owner_snapshot (
 
 -- Page membership (thay vì channel_member)
 CREATE TABLE page_member (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     page_uuid UUID NOT NULL,
     user_uuid UUID NOT NULL, -- NO FK!
     role VARCHAR(15) DEFAULT 'MEMBER',
@@ -122,7 +156,7 @@ CREATE TABLE page_member (
 
 -- Page followers (thay vì channel_follower)
 CREATE TABLE page_follower (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     page_uuid UUID NOT NULL,
     follower_uuid UUID NOT NULL, -- NO FK!
     notification_enabled BOOLEAN DEFAULT TRUE,
@@ -151,7 +185,7 @@ CREATE INDEX idx_page_follower_user ON page_follower(follower_uuid);
 
 -- Audit log cho page actions
 CREATE TABLE page_audit_log (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     page_uuid UUID NOT NULL,
     user_uuid UUID NOT NULL,
     action VARCHAR(50) NOT NULL, -- PAGE_CREATED, MEMBER_ADDED, etc.
@@ -165,38 +199,36 @@ CREATE TABLE page_audit_log (
 
 -- Event core entity - chỉ chứa metadata
 CREATE TABLE event (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     page_uuid UUID NOT NULL, -- NO FK! Event Service chỉ store UUID
     current_version_uuid UUID NOT NULL,
-    original_uuid UUID NOT NULL, -- For versioning
-    status VARCHAR(10) DEFAULT 'DRAFT', -- Changed: DRAFT -> PENDING -> PUBLISHED
+    status VARCHAR(10) DEFAULT 'DRAFT', -- DRAFT -> PENDING -> PUBLISHED
     visibility VARCHAR(10) DEFAULT 'PUBLIC', -- PUBLIC, PRIVATE, UNLISTED
     max_participants INTEGER CHECK (max_participants IS NULL OR max_participants > 0),
     current_participants INTEGER DEFAULT 0 CHECK (current_participants >= 0),
-    registration_count INTEGER DEFAULT 0, -- Derived, updated asynchronously
-    waiting_list_count INTEGER DEFAULT 0,
-    created_by UUID NOT NULL, -- User UUID string
-    published_by UUID, -- Admin UUID string
+    created_by UUID NOT NULL, -- User UUID
+    published_by UUID, -- Admin UUID
     published_at TIMESTAMP,
-    accepted_by UUID, -- Admin UUID string
+    accepted_by UUID, -- Admin UUID
     accepted_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP,
     CONSTRAINT check_status CHECK (status IN ('DRAFT', 'PENDING', 'REJECTED', 'PUBLISHED', 'CANCELLED')),
+    CONSTRAINT check_visibility CHECK (visibility IN ('PUBLIC', 'PRIVATE', 'UNLISTED')),
     CONSTRAINT check_participants CHECK (current_participants <= max_participants OR max_participants IS NULL)
+    -- Không tạo FK tới event_content ở đây để tránh lỗi vòng tham chiếu; thêm sau bằng ALTER TABLE
 );
 
 -- Event content versioning
 CREATE TABLE event_content (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     event_uuid UUID NOT NULL,
     previous_version_uuid UUID, -- Self-referencing
     version_number INTEGER NOT NULL DEFAULT 1,
     title VARCHAR(255) NOT NULL CHECK (LENGTH(title) >= 5),
     description TEXT NOT NULL CHECK (LENGTH(description) >= 10),
     location VARCHAR(255) NOT NULL,
-    coordinates GEOGRAPHY(Point, 4326), -- PostGIS for geo queries
     city VARCHAR(100) NOT NULL,
     category VARCHAR(100) NOT NULL,
     subcategory VARCHAR(100),
@@ -208,41 +240,22 @@ CREATE TABLE event_content (
     image_urls TEXT[], -- Multiple images
     video_url VARCHAR(500) CHECK (video_url ~ '^https?://'),
     host_uuids UUID[], -- Array of user UUIDs
-    edited_by UUID NOT NULL, -- User UUID string
-    edit_reason VARCHAR(500),
+    edited_by UUID NOT NULL, -- User UUID
+    -- edit_reason VARCHAR(500), unusefull
     is_current_version BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_content_event FOREIGN KEY (event_uuid) REFERENCES event(uuid) ON DELETE CASCADE,
-    CONSTRAINT fk_previous_version FOREIGN KEY (previous_version_uuid) REFERENCES event_content(uuid)
+    CONSTRAINT fk_content_event FOREIGN KEY (event_uuid) REFERENCES event(uuid) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
+    CONSTRAINT fk_previous_version FOREIGN KEY (previous_version_uuid) REFERENCES event_content(uuid) DEFERRABLE INITIALLY DEFERRED,
+    CONSTRAINT unique_event_version UNIQUE (event_uuid, version_number)
 );
 
--- Event registration
-CREATE TABLE event_registration (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    event_uuid UUID NOT NULL,
-    user_uuid UUID NOT NULL, -- NO FK!
-    registration_status VARCHAR(15) DEFAULT 'REGISTERED',
-    registration_notes TEXT,
-    check_in_status VARCHAR(15) DEFAULT 'NOT_CHECKED_IN',
-    check_in_time TIMESTAMP,
-    check_out_time TIMESTAMP,
-    cancellation_reason VARCHAR(500),
-    is_waitlist BOOLEAN DEFAULT FALSE,
-    waitlist_position INTEGER,
-    ticket_price DECIMAL(10,2),
-    currency VARCHAR(3) DEFAULT 'USD',
-    payment_transaction_uuid UUID, -- Reference to Payment Service
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT check_registration_status CHECK (registration_status IN ('REGISTERED', 'CANCELLED', 'NO_SHOW', 'ATTENDED', 'REFUNDED')),
-    CONSTRAINT check_checkin_status CHECK (check_in_status IN ('NOT_CHECKED_IN', 'CHECKED_IN', 'CHECKED_OUT')),
-    CONSTRAINT check_waitlist_position CHECK (waitlist_position IS NULL OR waitlist_position > 0),
-    CONSTRAINT unique_registration UNIQUE(event_uuid, user_uuid)
-);
+-- Thêm FK từ event.current_version_uuid → event_content.uuid sau khi cả 2 bảng đã tồn tại
+
+ALTER TABLE event ADD CONSTRAINT fk_current_version_uuid FOREIGN KEY (current_version_uuid) REFERENCES event_content(uuid);
 
 -- Event feedback
 CREATE TABLE event_feedback (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     event_uuid UUID NOT NULL,
     user_uuid UUID NOT NULL, -- NO FK!
     rating SMALLINT NOT NULL CHECK (rating >= 1 AND rating <= 5),
@@ -268,34 +281,118 @@ CREATE TABLE event_analytics (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_event_page ON event(page_uuid);
-CREATE INDEX idx_event_status ON event(status) WHERE status = 'PUBLISHED';
-CREATE INDEX idx_event_start_time ON event(start_time);
-CREATE INDEX idx_event_geo ON event_content USING GIST(coordinates);
-CREATE INDEX idx_event_category ON event_content(category);
-CREATE INDEX idx_registration_user ON event_registration(user_uuid);
-CREATE INDEX idx_registration_status ON event_registration(registration_status);
-CREATE INDEX idx_feedback_event ON event_feedback(event_uuid);
 
--- Composite indexes
-CREATE INDEX idx_event_reg_user_event ON event_registration(event_uuid, user_uuid);
-CREATE INDEX idx_event_content_current ON event_content(event_uuid, is_current_version) WHERE is_current_version = TRUE;
+-- event: danh sách public đã publish, chưa xóa, sắp theo thời gian
+CREATE INDEX IF NOT EXISTS event_published_public_idx
+  ON event(published_at DESC)
+  WHERE status = 'PUBLISHED' AND visibility = 'PUBLIC' AND deleted_at IS NULL;
 
--- Partitioning cho large tables (future-proof)
-CREATE TABLE event_registration_partitioned (
-    LIKE event_registration INCLUDING ALL
-) PARTITION BY RANGE (created_at);
+CREATE INDEX IF NOT EXISTS idx_event_page_uuid      ON event(page_uuid);
+CREATE INDEX IF NOT EXISTS idx_event_original_uuid  ON event(original_uuid);
+CREATE INDEX IF NOT EXISTS idx_event_created_by     ON event(created_by);
+CREATE INDEX IF NOT EXISTS idx_event_status_visibility ON event(status, visibility);
 
--- Partition cho mỗi quarter
-CREATE TABLE event_registration_2024_q4 PARTITION OF event_registration_partitioned
-    FOR VALUES FROM ('2024-10-01') TO ('2025-01-01');
-	
--- =========================
+-- event_content: thời gian/tìm kiếm/versioning
+CREATE INDEX IF NOT EXISTS idx_event_content_start_time ON event_content(start_time);
+CREATE INDEX IF NOT EXISTS idx_event_content_end_time   ON event_content(end_time);
+CREATE INDEX IF NOT EXISTS idx_event_content_city       ON event_content(city);
+CREATE INDEX IF NOT EXISTS idx_event_content_category   ON event_content(category);
+
+-- Unique partial: mỗi event chỉ có 1 bản current
+CREATE UNIQUE INDEX IF NOT EXISTS event_content_current_unique
+  ON event_content(event_uuid)
+  WHERE is_current_version = TRUE;
+
+-- Tăng tốc lấy bản current theo event_uuid
+CREATE INDEX IF NOT EXISTS event_content_event_current_idx
+  ON event_content(event_uuid)
+  WHERE is_current_version = TRUE;
+
+-- Tags array
+CREATE INDEX IF NOT EXISTS idx_event_content_tags_gin ON event_content USING GIN (tags);
+
+-- Title ILIKE: chỉ tạo nếu hệ thống có pg_trgm (tránh lỗi khi extension không sẵn)
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_available_extensions WHERE name = 'pg_trgm') THEN
+    PERFORM 1;
+    BEGIN
+      CREATE EXTENSION IF NOT EXISTS pg_trgm;
+      CREATE INDEX IF NOT EXISTS idx_event_content_title_trgm ON event_content USING GIN (title gin_trgm_ops);
+    EXCEPTION WHEN OTHERS THEN
+      -- Bỏ qua nếu không thể tạo extension/index
+      NULL;
+    END;
+  END IF;
+END$$;
+
+-- Event registration
+CREATE TABLE event_registration (
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+    event_uuid UUID NOT NULL,
+    user_uuid UUID NOT NULL, -- NO FK!
+    registration_status VARCHAR(15) DEFAULT 'REGISTERED',
+    registration_notes TEXT,
+    check_in_time TIMESTAMP,
+    check_out_time TIMESTAMP,
+    ticket_price DECIMAL(10,2),
+    currency VARCHAR(3) DEFAULT 'USD',
+    payment_transaction_uuid UUID, -- Reference to Payment Service
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT check_registration_status CHECK (registration_status IN ('REGISTERED', 'CANCELLED', 'NO_SHOW', 'ATTENDED', 'REFUNDED')),
+    CONSTRAINT check_checkin_status CHECK (check_in_status IN ('NOT_CHECKED_IN', 'CHECKED_IN', 'CHECKED_OUT')),
+    CONSTRAINT check_waitlist_position CHECK (waitlist_position IS NULL OR waitlist_position > 0),
+    CONSTRAINT check_ticket_price_non_negative CHECK (ticket_price IS NULL OR ticket_price >= 0),
+    CONSTRAINT unique_registration UNIQUE(event_uuid, user_uuid)
+);
+
+-- event_registration: tra cứu theo event/user và các trạng thái phổ biến
+CREATE INDEX IF NOT EXISTS idx_event_reg_event     ON event_registration(event_uuid);
+CREATE INDEX IF NOT EXISTS idx_registration_user   ON event_registration(user_uuid);
+CREATE INDEX IF NOT EXISTS idx_registration_status ON event_registration(registration_status);
+
+CREATE INDEX IF NOT EXISTS idx_event_reg_waitlist
+  ON event_registration (event_uuid, waitlist_position)
+  WHERE is_waitlist = TRUE;
+
+CREATE INDEX IF NOT EXISTS event_reg_checkin_idx
+  ON event_registration (event_uuid, check_in_status)
+  WHERE check_in_status <> 'NOT_CHECKED_IN';
+
+CREATE INDEX IF NOT EXISTS event_reg_payment_idx
+  ON event_registration (payment_transaction_uuid);
+
+-- event_feedback: đọc theo event, sắp mới nhất
+CREATE INDEX IF NOT EXISTS event_fb_event_created_idx
+  ON event_feedback (event_uuid, created_at DESC)
+  INCLUDE (rating, helpful_count, sentiment);
+
+CREATE INDEX IF NOT EXISTS idx_event_fb_user ON event_feedback(user_uuid);
+
+-- Triggers tự động cập nhật updated_at
+CREATE OR REPLACE FUNCTION set_updated_at()
+RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at := CURRENT_TIMESTAMP;
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS set_updated_at_event ON event;
+CREATE TRIGGER set_updated_at_event
+BEFORE UPDATE ON event
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
+DROP TRIGGER IF EXISTS set_updated_at_event_registration ON event_registration;
+CREATE TRIGGER set_updated_at_event_registration
+BEFORE UPDATE ON event_registration
+FOR EACH ROW EXECUTE FUNCTION set_updated_at();
+
 -- PAYMENT-SERVICE SCHEMA
 -- =========================
 
 CREATE TABLE payment_transaction (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     user_uuid UUID NOT NULL, -- NO FK!
     event_uuid UUID, -- Optional: for event registration
     registration_uuid UUID, -- Link to Event-Service
@@ -320,7 +417,7 @@ CREATE TABLE payment_transaction (
 
 -- Payment method storage (PCI-DSS compliant)
 CREATE TABLE payment_method (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     user_uuid UUID NOT NULL, -- NO FK!
     payment_method_type VARCHAR(20) NOT NULL, -- CARD, BANK_ACCOUNT, E_WALLET
     provider VARCHAR(20) NOT NULL, -- VNPAY, MOMO, STRIPE
@@ -333,7 +430,7 @@ CREATE TABLE payment_method (
 
 -- Payment gateway webhook events
 CREATE TABLE payment_webhook_log (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     gateway VARCHAR(20) NOT NULL,
     event_type VARCHAR(50) NOT NULL,
     payload JSONB NOT NULL,
@@ -352,7 +449,7 @@ CREATE INDEX idx_payment_event ON payment_transaction(event_uuid);
 -- =========================
 
 CREATE TABLE notification (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     user_uuid UUID NOT NULL, -- NO FK!
     notification_type VARCHAR(30) NOT NULL, -- EVENT_PUBLISHED, REGISTRATION_CONFIRMED, PAYMENT_SUCCESS
     priority VARCHAR(10) DEFAULT 'NORMAL', -- LOW, NORMAL, HIGH, URGENT
@@ -384,7 +481,7 @@ CREATE TABLE notification_preference (
 
 -- Notification device tokens (FCM, APNS)
 CREATE TABLE notification_device (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     user_uuid UUID NOT NULL, -- NO FK!
     device_type VARCHAR(10) CHECK (device_type IN ('IOS', 'ANDROID', 'WEB')),
     device_token TEXT NOT NULL,
@@ -396,7 +493,7 @@ CREATE TABLE notification_device (
 
 -- Outbox pattern for reliable event delivery
 CREATE TABLE notification_outbox (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     event_type VARCHAR(30) NOT NULL,
     payload JSONB NOT NULL,
     processed_at TIMESTAMP,
