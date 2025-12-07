@@ -216,3 +216,28 @@ CREATE TABLE image_analysis (
     CONSTRAINT check_image_size CHECK (image_size_bytes IS NULL OR image_size_bytes > 0),
     CONSTRAINT fk_analysis_event FOREIGN KEY (event_uuid) REFERENCES event(uuid) ON DELETE CASCADE
 );
+
+-- Point-in-Time Recovery cho mỗi database
+-- RDS Automated Backups: 7 days retention
+-- Manual Snapshots: Daily, retained 30 days
+
+-- Cross-region replication cho Payment DB (critical)
+CREATE SUBSCRIPTION payment_db_replica
+CONNECTION 'host=payment-db-primary.region-2.rds.amazonaws.com'
+PUBLICATION payment_transactions;
+
+-- Data retention policies
+CREATE TABLE event_history (
+    LIKE event INCLUDING ALL
+) INHERITS (event);
+
+-- Move old events > 1 year sang history table
+CREATE OR REPLACE FUNCTION archive_old_events()
+RETURNS void AS $$
+BEGIN
+    INSERT INTO event_history
+    SELECT * FROM event WHERE created_at < NOW() - INTERVAL '1 year';
+    
+    DELETE FROM event WHERE created_at < NOW() - INTERVAL '1 year';
+END;
+$$ LANGUAGE plpgsql;
