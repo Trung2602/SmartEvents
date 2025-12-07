@@ -17,7 +17,7 @@
 /.next/
 /out/
 
-/front-end/interest/
+/interest/
 
 # production
 /build
