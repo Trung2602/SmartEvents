@@ -12,12 +12,6 @@ import java.util.UUID;
 @Repository
 public interface  AccountRepository extends JpaRepository<Account, UUID> {
 
-    Page<Account> findByName(String name, Pageable pageable);
-
     Optional<Account> findByEmail(String email);
-
-    Page<Account> findByRole(Account.Role role, Pageable pageable);
-
-    Page<Account> findByIsActive(Boolean isActive, Pageable pageable);
-
+    Page<Account> findAll(Pageable pageable);
 }

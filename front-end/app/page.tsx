@@ -247,11 +247,11 @@ export default function Home() {
       <Footer setTheme={handleSetTheme} theme={theme} />
 
       <Modal isOpen={showSignInModal} onClose={() => setShowSignInModal(false)}>
-        {Login()}
+        <Login onSuccess={() => setShowSignInModal(false)} />
       </Modal>
 
       <Modal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)}>
-        {Register()}
+        <Register onSuccess={() => setShowSignUpModal(false)} />
       </Modal>
 
       <Modal isOpen={!!selectedEvent} onClose={() => setSelectedEvent(null)} size="lg">
