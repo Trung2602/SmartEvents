@@ -39,8 +39,7 @@ COMMENT ON TABLE account IS 'Centralized identity - Owned exclusively by User-Se
 CREATE TABLE admin_profile (
     account_uuid UUID PRIMARY KEY,
     department VARCHAR(100),
-    permissions JSONB, -- JSONB thay vì TEXT
-    CONSTRAINT fk_admin_account FOREIGN KEY (account_uuid) REFERENCES account(uuid) ON DELETE CASCADE
+    permissions JSONB -- JSONB thay vì TEXT
 );
 
 -- User profile (separate table để optimize queries)
@@ -59,8 +58,7 @@ CREATE TABLE user_profile (
     preferences JSONB, -- Notification settings, timezone
     privacy_settings JSONB, -- Profile visibility
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_profile_account FOREIGN KEY (account_uuid) REFERENCES account(uuid) ON DELETE CASCADE
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Indexes cho performance

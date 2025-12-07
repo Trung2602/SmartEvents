@@ -1,8 +1,10 @@
 package com.aws.pojo;
 
+import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.Type;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -32,6 +34,7 @@ public class NotificationPreference {
     @Column(name = "quiet_hours_end")
     private String quietHoursEnd;
 
+    @Type(JsonType.class)
     @Column(name = "blocked_categories", columnDefinition = "jsonb")
     private String blockedCategories;
 

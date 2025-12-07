@@ -5,8 +5,9 @@ const BASE_URL = "http://localhost:8080/api/";
 
 export const endpoints = {
   // Auth
-  "register": "accounts",
+  "register": "register/account",
   "login": "auth/login",
+  "verify-email": "register/verify-email",
   "profile": "secure/profile",
   "profile-update": "account/edit",
 

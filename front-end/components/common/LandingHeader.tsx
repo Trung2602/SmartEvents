@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
+'use client';
+
+import React, { useState, useEffect, useContext } from 'react';
 import { NAV_ITEMS } from '../../lib/constants';
 import { Button } from '../ui/button';
-import { useRouter } from 'next/router';
+import { AuthContext } from '@/context/AuthContext';
+import Account from '@/app/app/feature/Account';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
 interface HeaderProps {
@@ -12,6 +16,8 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ onLogin, onRegister, onNavigate }) => {
     const [isScrolled, setIsScrolled] = useState(false);
+    const { user, signOut } = useContext(AuthContext);
+    const router = useRouter();
     useEffect(() => {
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 10);
@@ -31,6 +37,9 @@ export const Header: React.FC<HeaderProps> = ({ onLogin, onRegister, onNavigate 
             }
         }
     };
+
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const closeMenu = () => setIsMenuOpen(false);
 
     return (
         <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-background/80 backdrop-blur-xl py-3' : 'bg-transparent py-5' // border-b border-white/10
@@ -68,18 +77,24 @@ export const Header: React.FC<HeaderProps> = ({ onLogin, onRegister, onNavigate 
                         ))}
                     </nav>
 
-                    {/* Actions */}
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={onLogin}
-                            className="hidden sm:block text-sm font-medium text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
-                        >
-                            Sign in
-                        </button>
-                        <Button className='rounded-full' onClick={onRegister}>
-                            Sign up
-                        </Button>
-                    </div>
+                                    {/* Actions */}
+                                    <div className="flex items-center gap-4">
+                                        {user ? (
+                                            <Account />
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={onLogin}
+                                                    className="hidden sm:block text-sm font-medium text-foreground/80 hover:text-foreground transition-colors cursor-pointer"
+                                                >
+                                                    Sign in
+                                                </button>
+                                                <Button className='rounded-full' onClick={onRegister}>
+                                                    Sign up
+                                                </Button>
+                                            </>
+                                        )}
+                                    </div>
                 </div>
             </div>
         </header>

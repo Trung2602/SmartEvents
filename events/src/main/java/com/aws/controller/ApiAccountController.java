@@ -4,6 +4,8 @@ package com.aws.controller;
 import com.aws.dto.AccountDTO;
 import com.aws.pojo.Account;
 import com.aws.services.AccountService;
+import com.aws.services.MailService;
+import com.aws.services.OTPService;
 import com.aws.utils.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -11,7 +13,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.Map;
+import java.util.Random;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api")
@@ -20,21 +26,64 @@ public class ApiAccountController {
     @Autowired
     private AccountService accountService;
 
+    @Autowired
+    private MailService mailService;
+
+    @Autowired
+    private OTPService otpService;
+
     @PostMapping("/auth/login")
-    public ResponseEntity<?> login(@RequestBody Account a) {
-        if (a.getEmail() == null || a.getPasswordHash() == null) {
-            return ResponseEntity.badRequest().body("Username or password can not be null");
+    public ResponseEntity<?> login(@RequestBody AccountDTO dto) {
+        if (dto.getEmail() == null || dto.getPassword() == null) {
+            return ResponseEntity
+                    .badRequest()
+                    .body("Username or password cannot be null");
         }
 
-        if (this.accountService.authenticate(a.getEmail(), a.getPasswordHash())) {
-            try {
-                String token = JwtUtils.generateToken(a.getEmail());
-                return ResponseEntity.ok().body(Collections.singletonMap("token", token));
-            } catch (Exception e) {
-                return ResponseEntity.status(500).body("Error to create JWT");
-            }
+        Account account = accountService.getAccountByEmail(dto.getEmail());
+        if (account == null) {
+            // account không tồn tại
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid email or password");
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Password or Username is not correct");
+
+        if (!account.getEmailVerified()) {
+            // gửi OTP nếu email chưa verify
+            String otp = String.valueOf(new Random().nextInt(900000) + 100000);
+            otpService.saveOtp(dto.getEmail(), otp);
+            mailService.sendMail(
+                    dto.getEmail(),
+                    "Mã OTP xác thực",
+                    "Mã OTP của bạn là: " + otp + "\nMã này sẽ hết hạn sau 5 phút."
+            );
+            return ResponseEntity
+                    .status(HttpStatus.FORBIDDEN)
+                    .body("Email not verified. OTP has been sent.");
+        }
+
+        boolean authOK = accountService.authenticate(dto.getEmail(), dto.getPassword());
+        if (!authOK) {
+            return ResponseEntity
+                    .status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid email or password");
+        }
+
+        String token;
+        try {
+            token = JwtUtils.generateToken(dto.getEmail());
+        } catch (Exception e) {
+            return ResponseEntity
+                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Could not create JWT");
+        }
+
+        // cập nhật last login time sau khi authenticate thành công
+        account.setLastLoginAt(LocalDateTime.now());
+        accountService.addOrUpdateAccount(account);
+
+        Map<String, String> result = Collections.singletonMap("token", token);
+        return ResponseEntity.ok(result);
     }
 
     @RequestMapping("/secure/profile")
@@ -44,49 +93,20 @@ public class ApiAccountController {
         return new ResponseEntity<>(this.accountService.getAccountByEmail(principal.getName()), HttpStatus.OK);
     }
 
-//    @PostMapping("/register/account")
-//    public ResponseEntity<?> addUser(@ModelAttribute AccountDTO a) {
-//        try {
-//            if(a.getRole() == null || a.getRole().isBlank()){
-//                return ResponseEntity.badRequest().body("Role can not be empty!");
-//            }
-//
-//            Account account = new Account();
-//            account.setRole(Account.Role.valueOf(a.getRole()));
-//            account.setPasswordHash(a.getPassword());
-//            account.setName(a.getName());
-//            account.setEmail(a.getEmail());
-//            if(a.getAvatarUrl()!=null || !a.getAvatarUrl().isBlank())
-//                account.setAvatarUrl(a.getAvatarUrl());
-//
-//            Account accountSaved = this.accountService.addOrUpdateAccount(account);
-//
-//            return ResponseEntity.ok(accountSaved);
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .body("Error to create new User: " + e.getMessage());
-//        }
-//    }
 
     @PostMapping("/register/account")
-    public ResponseEntity<?> addUser(@RequestBody AccountDTO a) {
+    public ResponseEntity<?> userRegisterAccount(@RequestBody AccountDTO a) {
         try {
-            if (a.getRole() == null || a.getRole().isBlank()) {
-                return ResponseEntity.badRequest().body("Role can not be empty!");
-            }
-
             Account account = new Account();
-            account.setRole(Account.Role.valueOf(a.getRole().toUpperCase())); // đảm bảo enum match
+            account.setRole(Account.Role.USER);
             account.setPasswordHash(a.getPassword());
-            account.setName(a.getName());
             account.setEmail(a.getEmail());
 
-            if (a.getAvatarUrl() != null && !a.getAvatarUrl().isBlank()) {
-                account.setAvatarUrl(a.getAvatarUrl());
-            }
-
             Account accountSaved = this.accountService.addOrUpdateAccount(account);
+
+            String otp = String.valueOf(new Random().nextInt(900000) + 100000);
+            otpService.saveOtp(a.getEmail(), otp);
+            mailService.sendMail(a.getEmail(),"Mã OTP xác thực", "Mã OTP của bạn là: " + otp + "\nMã này sẽ hết hạn sau 5 phút.");
 
             return ResponseEntity.ok(accountSaved);
         } catch (Exception e) {
@@ -96,4 +116,28 @@ public class ApiAccountController {
         }
     }
 
+
+    @PostMapping("/user/verify-email")
+    public ResponseEntity<?> verifyEmail(@RequestParam String email, @RequestParam String otp) {
+        String cachedOtp = otpService.getOtp(email);
+
+        if (cachedOtp == null) {
+            return ResponseEntity.status(404).body("OTP đã hết hạn");
+        }
+
+        if (!cachedOtp.equals(otp)) {
+            return ResponseEntity.status(400).body("OTP không chính xác");
+        }
+        Account account = this.accountService.getAccountByEmail(email);
+        account.setEmailVerified(Boolean.TRUE);
+        this.accountService.addOrUpdateAccount(account);
+
+        String resetToken = UUID.randomUUID().toString();
+        otpService.saveResetToken(email, resetToken);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Xác minh OTP thành công",
+                "resetToken", resetToken
+        ));
+    }
 }

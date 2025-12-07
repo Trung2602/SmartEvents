@@ -1,8 +1,13 @@
 package com.aws.pojo;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.Type;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -18,56 +23,51 @@ public class UserProfile {
     @Column(name = "account_uuid")
     private UUID accountUuid;
 
-    @Column(name = "first_name", length = 100)
+    @Column(name = "first_name", nullable = false, length = 100)
     private String firstName;
 
-    @Column(name = "last_name", length = 100)
+    @Column(name = "last_name", nullable = false, length = 100)
     private String lastName;
 
-    @Column(name = "full_name", length = 200)
+    @Column(name = "full_name", insertable = false, updatable = false, length = 201)
     private String fullName;
 
     @Column(name = "date_of_birth")
     private LocalDate dateOfBirth;
 
-    @Column(length = 100)
+    @Column(name = "city", length = 100)
     private String city;
 
-    @Column(name = "country_code", length = 10)
+    @Column(name = "country_code", length = 3)
     private String countryCode;
 
     @Column(name = "avatar_url", length = 500)
     private String avatarUrl;
 
-    @Column(length = 500)
+    @Column(name = "bio", columnDefinition = "TEXT")
     private String bio;
 
-    @Column(columnDefinition = "jsonb")
-    private String interests;
+    @Type(JsonType.class)
+    @Column(name = "interests", columnDefinition = "jsonb")
+    private JsonNode interests;
 
+    @Type(JsonType.class)
     @Column(name = "social_links", columnDefinition = "jsonb")
-    private String socialLinks;
+    private JsonNode socialLinks;
 
-    @Column(columnDefinition = "jsonb")
-    private String preferences;
+    @Type(JsonType.class)
+    @Column(name = "preferences", columnDefinition = "jsonb")
+    private JsonNode preferences;
 
+    @Type(JsonType.class)
     @Column(name = "privacy_settings", columnDefinition = "jsonb")
-    private String privacySettings;
+    private JsonNode privacySettings;
 
-    @Column(name = "created_at")
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
 
+    @UpdateTimestamp
     @Column(name = "updated_at")
-    private LocalDateTime updatedAt = LocalDateTime.now();
-
-    @PrePersist
-    public void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
-    }
-
-    @PreUpdate
-    public void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
+    private LocalDateTime updatedAt;
 }
