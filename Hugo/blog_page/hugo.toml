@@ -1,6 +1,3 @@
 baseURL = 'https://example.org/'
 languageCode = 'en-us'
-defaultContentLanguage = "en"
-
 title = 'My New Hugo Site'
-theme = "learn"
