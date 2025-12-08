@@ -199,7 +199,7 @@ CREATE TABLE notification_preference (
     sms_enabled BOOLEAN DEFAULT FALSE,
     quiet_hours_start TIME,
     quiet_hours_end TIME,
-    blocked_categories TEXT[], -- ['MARKETING', 'SOCIAL']
+    blocked_categories jsonb, -- ['MARKETING', 'SOCIAL']
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
