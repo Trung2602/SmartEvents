@@ -1,0 +1,68 @@
+baseURL = 'https://example.org/'
+languageCode = 'en-us'
+title = 'My Blog Page'
+
+theme = "hugo-theme-relearn"
+
+# relativeURLs = false
+canonifyURLs = true
+
+[module]
+  [[module.imports]]
+    path = 'github.com/McShelby/hugo-theme-relearn'
+
+[languages]
+  [languages.en]
+    weight = 1
+    languageName = "English"
+    [languages.en.params]
+      landingPageName = '<i class="fa-fw fas fa-home"></i> Home'
+    
+  [languages.vn]
+    weight = 2
+    languageName = "Tiếng Việt"
+    [languages.vn.params]
+      landingPageName = '<i class="fa-fw fas fa-home"></i> Trang chủ'
+
+[menu]
+  [[menu.shortcuts]]
+    pre = '<i class="fa-fw fab fa-github"></i> '
+    name = 'GitHub Repo'
+    url = 'https://github.com/trungnte/my-fcj-blog'
+    weight = 1
+
+[outputs]
+  home = ['html', 'rss', 'markdown', 'source']
+  page = ['html', 'markdown', 'source']
+  section = ['html', 'rss', 'markdown', 'source']
+
+
+[params]
+  # linkTitle = 'Relearn'
+  # disableLandingPageButton = true # Show/Hide Home Page
+  
+  # alwaysopen=true
+  # collapsibleMenu=true
+
+  # History
+  showVisitedLinks=true 
+
+  themeVariant = [
+    { identifier = 'zen-dark'       },
+    { identifier = 'learn'          },
+    { identifier = 'relearn-auto',  name = 'Relearn Light/Dark', auto = [ 'relearn-light', 'relearn-dark' ] },
+    { identifier = 'relearn-dark'   },
+    { identifier = 'relearn-light'  },
+    { identifier = 'relearn-bright' },
+    { identifier = 'zen-auto',      name = 'Zen Light/Dark', auto = [ 'zen-light', 'zen-dark' ] },
+    
+    { identifier = 'zen-light'      },
+    { identifier = 'retro-auto',    name = 'Retro Learn/Neon', auto = [ 'learn', 'neon' ] },
+    { identifier = 'neon'           },
+
+    { identifier = 'blue'           },
+    { identifier = 'green'          },
+    { identifier = 'red'            }]
+
+  images = ['images/hero.png']
+

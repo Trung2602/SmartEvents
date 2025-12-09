@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import axios, { endpoints, authApis } from '@/lib/APIs';
 import PageDetail from './PageDetail';
 import CreatePageDialog from './CreatePageDialog';
+import { useContext } from 'react';
+import { AuthContext } from '@/context/AuthContext';
 
 interface PageProps {
   pageId?: string;
@@ -21,6 +23,7 @@ interface Page {
 }
 
 export default function PageList({ pageId }: PageProps) {
+  const { user } = useContext(AuthContext);
   const [selectedPageId, setSelectedPageId] = useState<string | null>(null);
 
   const [myPages, setMyPages] = useState<Page[]>([]);
@@ -38,9 +41,12 @@ export default function PageList({ pageId }: PageProps) {
   const fetchMyPages = async (page: number = 0) => {
     setLoadingMyPages(true);
     try {
-      const res = await axios.get(endpoints['pages-owner-test'], {
+      const res = await authApis().get(endpoints['pages-owner'], {
         params: { page, size: PAGE_SIZE },
-      });
+        headers: {
+          "X-User-Email": user?.email,
+        },
+      },);
 
       const pages: Page[] = res.data.content.map((p: any) => ({
         ...p,

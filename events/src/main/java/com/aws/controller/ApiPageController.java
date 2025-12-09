@@ -1,6 +1,8 @@
 package com.aws.controller;
 
+import com.aws.pojo.Account;
 import com.aws.pojo.Page;
+import com.aws.services.AccountService;
 import com.aws.services.PageService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -18,11 +20,15 @@ public class ApiPageController {
     @Autowired
     private PageService pageService;
 
-    @GetMapping("/pages/owner/{ownerUuid}")
-    public ResponseEntity<org.springframework.data.domain.Page<Page>> getPagesByOwner(@PathVariable UUID ownerUuid,
-              @RequestParam(defaultValue = "0") int page,
-              @RequestParam(defaultValue = "10") int size) {
-        org.springframework.data.domain.Page<Page> pages = pageService.getPagesByOwner(ownerUuid, page, size);
+    @Autowired
+    private AccountService accountService;
+
+    @GetMapping("/pages/owner")
+    public ResponseEntity<org.springframework.data.domain.Page<Page>> getPagesByOwner(
+            @RequestHeader("X-User-Email") String mail,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        org.springframework.data.domain.Page<Page> pages = pageService.getPagesByOwner(accountService.getAccountByEmail(mail).getUuid(), page, size);
         return ResponseEntity.ok(pages);
     }
 
@@ -32,10 +38,29 @@ public class ApiPageController {
         return ResponseEntity.ok(page);
     }
 
-    @PostMapping("/page-update")
-    public ResponseEntity<Page> createOrUpdatePage(@RequestBody Page page) {
-        return ResponseEntity.ok(this.pageService.addOrUpdatePage(page));
+    private String toSlug(String input) {
+        return input
+                .toLowerCase()
+                .replaceAll("[^a-z0-9\\s-]", "")
+                .replaceAll("\\s+", "-")
+                .replaceAll("-+", "-")
+                .trim();
     }
+
+    @PostMapping("/page-update")
+    public ResponseEntity<Page> createOrUpdatePage(
+            @RequestHeader("X-User-Email") String mail,
+            @RequestBody Page page) {
+        Account owner = accountService.getAccountByEmail(mail);
+        if (page.getSlug() == null || page.getSlug().isEmpty()) {
+            page.setSlug(toSlug(page.getName()));
+        }
+
+        page.setOwnerUuid(owner.getUuid());
+
+        return ResponseEntity.ok(pageService.addOrUpdatePage(page));
+    }
+
 
     @DeleteMapping("/page-delete/{uuid}")
     public ResponseEntity<?> deletePage(@PathVariable UUID uuid) {
