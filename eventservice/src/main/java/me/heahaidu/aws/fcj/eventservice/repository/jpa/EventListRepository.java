@@ -11,21 +11,24 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 public interface EventListRepository extends JpaRepository<Event, UUID> {
     @Query(value = """
             SELECT
-                e.uuid                      AS event_uuid,
-                e.page_uuid                 AS page_uuid,
-                e.current_participants      AS current_participants,
-                e.max_participants          AS max_participants,
+                e.uuid                      AS eventUuid,
+                e.page_uuid                 AS pageUuid,
+                e.current_participants      AS currentParticipants,
+                e.max_participants          AS maxParticipants,
                 ec.title                    AS title,
-                ec.start_time               AS start_time,
-                ec.end_time                 AS end_time,
+                ec.start_time               AS startTime,
+                ec.end_time                 AS endTime,
                 ec.location                 AS location,
                 ec.city                     AS city,
-                ec.category                 AS category
+                ec.country_code             AS countryCode,
+                ec.category                 AS category,
+                ec.image_urls AS imageUrls
             FROM event e
             JOIN event_content ec ON ec.uuid = e.current_version_uuid
             WHERE e.deleted_at IS NULL
@@ -48,7 +51,7 @@ public interface EventListRepository extends JpaRepository<Event, UUID> {
             ORDER BY ec.start_time DESC, e.uuid DESC
             LIMIT CAST(:limit AS INTEGER)
             """, nativeQuery = true)
-    List<EventProjection> findEventsKeyset(
+    Optional<List<EventProjection>> findEventsKeyset(
             @Param("from") Instant from,
             @Param("to") Instant to,
             @Param("search") String search,
