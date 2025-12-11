@@ -76,19 +76,21 @@ public class EventServiceImpl implements EventService {
 
         List<EventProjection> rows = eventListRepository.findEventsKeyset(
                 from, to, search, cursorStart, cursorUuid, limit
-        );
+        ).orElseThrow(() -> new EventException(ErrorCode.EVENT_NOT_FOUND));
 
         List<EventResponse> items = rows.stream().map(r -> EventResponse.builder()
-                .uuid(r.getEvent_uuid())
-                .pageUuid(r.getPage_uuid())
+                .uuid(r.getEventUuid())
+                .pageUuid(r.getPageUuid())
                 .title(r.getTitle())
-                .startTime(r.getStart_time())
-                .endTime(r.getEnd_time())
+                .startTime(r.getStartTime())
+                .endTime(r.getEndTime())
                 .location(r.getLocation())
                 .city(r.getCity())
                 .category(r.getCategory())
-                .maxParticipants(r.getMax_participants())
-                .currentParticipants(r.getCurrent_participants())
+                .maxParticipants(r.getMaxParticipants())
+                .currentParticipants(r.getCurrentParticipants())
+                .imageUrl(r.getImageUrls()[0])
+                .countryCode(r.getCountryCode())
                 .build()
         ).toList();
 
@@ -97,7 +99,7 @@ public class EventServiceImpl implements EventService {
 
         if (hasNext) {
             var last = rows.getLast();
-            nextCursor = CursorUtil.encode(last.getStart_time(), last.getEvent_uuid());
+            nextCursor = CursorUtil.encode(last.getStartTime(), last.getEventUuid());
         }
 
         return EventListResponse.builder()
