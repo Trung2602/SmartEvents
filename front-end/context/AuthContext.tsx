@@ -4,16 +4,11 @@ import React, { createContext, useEffect, useState } from "react";
 import { setCookie, deleteCookie, getCookie } from "cookies-next";
 import api, { authApis } from "@/lib/APIs";
 import { Toaster } from 'sonner';
-
-type User = {
-  id?: string | number;
-  name?: string;
-  email?: string;
-  avatarUrl?: string;
-};
+import { UserProfile } from "@/lib/types";
+import { INITIAL_USER } from "@/lib/services/mockData";
 
 type AuthContextValue = {
-  user: User | null;
+  user: UserProfile | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => void;
@@ -27,13 +22,14 @@ export const AuthContext = createContext<AuthContextValue>({
 });
 
 export const AuthProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadUser = async () => {
     const token = getCookie("token");
     if (!token) {
-      setUser(null);
+      // setUser(null);
+      setUser(INITIAL_USER)
       setLoading(false);
       return;
     }
@@ -41,8 +37,8 @@ export const AuthProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }
     try {
       const res = await authApis().get("/secure/profile");
       // debug
-      console.log("AuthProvider.loadUser: profile response:", res?.data);
-      setUser(res.data || null);
+      // console.log("AuthProvider.loadUser: profile response:", res?.data);
+      setUser(res.data || INITIAL_USER || null);
     } catch (err) {
       setUser(null);
     } finally {

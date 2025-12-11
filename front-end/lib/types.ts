@@ -1,30 +1,91 @@
 import React from 'react';
 
-export interface Organizer {
+export interface Event {
+  uuid: string; 
+  title: string; 
+  startTime: string;
+  endTime: string;
+  location: string;
+  countryCode: string;
+  category: string; 
+  imageUrl: string; 
+  organizerName?: string;
+  organizerAvatar?: string;
+  organizerId?: string; 
+  organizerType?: 'user' | 'page';
+  coHosts?: UserProfile[]; 
+  price?: string;
+  description?: string;
+  isSoldOut?: boolean;
+  isEnded?: boolean;
+  
+  isLiked?: boolean;
+  isOwner?: boolean; 
+  isRegistered?: boolean; 
+  currentParticipants?: number;
+  hasCheckedIn?:boolean;
+  status?: 'upcoming' | 'full' | 'ended';
+  isInterested?: boolean;
+}
+
+export interface UserProfile {
+  uuid: string;
+  name: string;
+  email: string;
+  username: string;
+  avatarUrl: string;
+  bio?: string;
+
+  // Social profile fields
+  coverUrl?: string;
+  followers?: number;
+  following?: number;
+  jobTitle?: string;
+  location?: string; // Formatted string e.g. "San Francisco, CA"
+  city?: string; // New
+  country?: string; // New
+  timezone?: string; // New
+  joinedDate?: string;
+}
+
+export interface ManagedPage {
+  id: string;
   name: string;
   avatarUrl: string;
 }
 
-export interface Event {
+export interface Notification {
   id: string;
   title: string;
-  description: string;
-  date: string; // ISO string YYYY-MM-DD
+  message: string;
   time: string;
-  location: string;
-  imageUrl: string;
-  organizer: Organizer;
-  category: string; // Changed from literal union to string to support dynamic categories
-  price: string;
-  status: 'upcoming' | 'full' | 'ended';
-  attendeesCount: number;
-  isInterested?: boolean;
+  isRead: boolean;
+  type: 'info' | 'success' | 'warning';
+}
+
+export enum GenerationStatus {
+  IDLE = 'IDLE',
+  LOADING = 'LOADING',
+  SUCCESS = 'SUCCESS',
+  ERROR = 'ERROR'
 }
 
 export interface DateFilter {
   start: string;
   end: string;
   isAuto: boolean;
+}
+
+export type Theme = 'light' | 'dark' | 'system';
+export type ViewMode = 'list' | 'grid';
+export type AppPage = 'Discover' | 'Channel' | 'Bookmarks' | 'Profile' | 'Activity' | 'Settings' | 'Support';
+export type ActivityTab = 'registered' | 'attended' | 'missed' | 'cancelled';
+export type EventCardType = 'app' | 'landing' | 'chat'
+
+// Legacy types for backward compatibility
+export interface Organizer {
+  name: string;
+  avatarUrl: string;
 }
 
 export interface NavItem {
@@ -44,9 +105,6 @@ export interface DateRange {
   start: Date | null;
   end: Date | null;
 }
-
-export type ViewMode = 'grid' | 'list';
-export type Theme = 'light' | 'dark' | 'system';
 
 export interface Review {
   id: string;
@@ -72,21 +130,10 @@ export interface CommunityPost {
   category: string;
 }
 
-export type AppPage = 'discover' | 'interest' | 'profile' | 'activity';
-
-export interface Notification {
+export interface ChatMessage {
   id: string;
-  title: string;
-  message: string;
-  time: string;
-  isRead: boolean;
-  type: 'info' | 'success' | 'warning';
-}
-
-export interface UserProfile {
-  name: string;
-  email: string;
-  username: string;
-  avatarUrl: string;
-  bio?: string;
+  sender: 'user' | 'ai';
+  text: string;
+  relatedEventIds?: string[];
+  timestamp: Date;
 }
