@@ -2,11 +2,11 @@
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
     <title>Cost Budget :: My Blog Page</title>
-    <link>http://localhost:54582/firstcloudjourney/01-cost-management-with-aws-budget/02-cost-budget/index.html</link>
+    <link>http://localhost:1313/firstcloudjourney/01-cost-management-with-aws-budget/02-cost-budget/index.html</link>
     <description>Overview&#xD;In this session, we will learn how to create and configure an AWS Cost Budget to monitor and manage our AWS spending effectively.&#xA;Note Cost Budgets are the most common type of AWS Budget, allowing you to set thresholds for your AWS spending and receive alerts when costs exceed or are forecasted to exceed your defined limits.</description>
     <generator>Hugo</generator>
     <language>en</language>
     <lastBuildDate></lastBuildDate>
-    <atom:link href="http://localhost:54582/firstcloudjourney/01-cost-management-with-aws-budget/02-cost-budget/index.xml" rel="self" type="application/rss+xml" />
+    <atom:link href="http://localhost:1313/firstcloudjourney/01-cost-management-with-aws-budget/02-cost-budget/index.xml" rel="self" type="application/rss+xml" />
   </channel>
 </rss>
