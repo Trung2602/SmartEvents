@@ -11,106 +11,101 @@ const formatDate = (date: Date) => date.toISOString().split('T')[0];
 
 export const FEATURED_EVENTS: Event[] = [
   {
-    id: '1',
+    uuid: '1',
     title: 'Summer Music Festival',
-    description: 'The biggest indie music festival of the season featuring top artists.',
-    date: formatDate(today),
-    time: '18:00 - 22:00',
-    location: 'Central Park, New York',
-    imageUrl: 'https://images.unsplash.com/photo-1663028055174-6281c778f81b?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    organizer: {
-      name: 'Vibe Nation',
-      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Vibe'
-    },
+    startTime: formatDate(today)+"T18:00",
+    endTime: formatDate(today)+"T22:00",
+    location: "Central Park, New York",
+    countryCode: "USA",
     category: 'Music',
+    imageUrl: 'https://images.unsplash.com/photo-1663028055174-6281c778f81b?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    description: 'The biggest indie music festival of the season featuring top artists.',
+    "organizerName": "Vibe Nation",
+    "organizerAvatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Vibe",
     price: '$45',
     status: 'upcoming',
-    attendeesCount: 342
+    //attendeesCount: 342
   },
   {
-    id: '2',
+    uuid: '2',
     title: 'Tech Conference 2024',
     description: 'Annual gathering of tech enthusiasts, founders, and VCs.',
-    date: formatDate(today),
-    time: '09:00 - 17:00',
+    startTime: formatDate(today)+'T09:00',
+    endTime: formatDate(today)+'T17:00',
+    countryCode: "USA",
+
     location: 'Convention Center, SF',
     imageUrl: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-    organizer: {
-      name: 'TechCrunch',
-      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tech'
-    },
+    organizerName: 'TechCrunch',
+    organizerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Tech',
     category: 'Tech',
     price: '$299',
     status: 'full',
-    attendeesCount: 1250
+    currentParticipants: 1250
   },
   {
-    id: '3',
+    uuid: '3',
     title: 'Art Exhibition Opening',
     description: 'Contemporary art showcase "Future Past" by local artists.',
-    date: formatDate(tomorrow),
-    time: '19:00 - 21:00',
+    startTime: formatDate(tomorrow)+'T19:00',
+    endTime: formatDate(tomorrow)+'T21:00',
+    countryCode: "USA",
     location: 'Modern Art Museum, LA',
     imageUrl: 'https://images.unsplash.com/photo-1518998053901-5348d3961a04?q=80&w=1548&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
-    organizer: {
-      name: 'MOMA',
-      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Art'
-    },
+    organizerName: 'MOMA',
+    organizerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Art',
     category: 'Art',
     price: 'Free',
     status: 'upcoming',
-    attendeesCount: 218
+    currentParticipants: 218
   },
   {
-    id: '4',
+    uuid: '4',
     title: 'Gaming Tournament Finals',
-    description: 'Watch the top teams compete for the championship trophy.',
-    date: formatDate(tomorrow),
-    time: '14:00 - 20:00',
-    location: 'Esports Arena',
-    imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-    organizer: {
-      name: 'GameOn',
-      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Game'
-    },
+    startTime: formatDate(tomorrow)+'T14:00',
+    endTime: formatDate(tomorrow)+'T20:00',
+    location: 'Esports Arena, Las Vegas',
+    countryCode: "USA",
     category: 'Gaming',
-    price: '$15',
-    status: 'upcoming',
-    attendeesCount: 890
+    imageUrl: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+    organizerName: 'ESL',
+    organizerAvatar: 'https://i.pravatar.cc/100?img=4',
+    price: '$50',
+    description: 'Watch the top teams battle it out for the championship trophy.',
+    currentParticipants: 5000,
+    "isLiked": false
   },
   {
-    id: '5',
-    title: 'Pastry Workshop',
-    description: 'Learn to make french macarons with Chef Pierre.',
-    date: formatDate(nextWeek),
-    time: '10:00 - 13:00',
-    location: 'Culinary Institute',
-    imageUrl: 'https://images.unsplash.com/photo-1556910103-1c02745a30bf?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-    organizer: {
-      name: 'Sweet Life',
-      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Food'
-    },
-    category: 'Workshop',
-    price: '$80',
-    status: 'upcoming',
-    attendeesCount: 12
+    uuid: '5',
+    title: 'Past Coding Bootcamp',
+    startTime: formatDate(nextWeek)+'T10:00',
+    endTime: formatDate(nextWeek)+'T16:00',
+    location: 'Online',
+    countryCode: "USA",
+    category: 'Education',
+    imageUrl: 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
+    organizerName: 'CodeAcademy',
+    organizerAvatar: 'https://i.pravatar.cc/100?img=5',
+    price: 'Free',
+    isEnded: true,
+    currentParticipants: 120,
+    isLiked: false
   },
   {
-    id: '6',
+    uuid: '6',
     title: 'Sunset Yoga',
     description: 'End your day with a relaxing flow by the beach.',
-    date: '2023-11-15', // Past date
-    time: '17:30 - 18:30',
+    startTime: formatDate(today)+'T17:30',
+    endTime: formatDate(today)+'T18:30',
+    countryCode: "USA",
     location: 'Santa Monica Beach',
     imageUrl: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80',
-    organizer: {
-      name: 'Zen Yoga',
-      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Yoga'
-    },
+    organizerName: 'Zen Yoga',
+    organizerAvatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Yoga',
     category: 'Wellness',
     price: 'Free',
     status: 'ended',
-    attendeesCount: 45
+    currentParticipants: 45
   }
 ];
 
@@ -146,42 +141,42 @@ export const REVIEWS = [
 ];
 
 export const COMMUNITY_POSTS = [
-    {
-        id: '1',
-        author: {
-            name: 'Alex Rivera',
-            avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex'
-        },
-        content: 'Does anyone have extra tickets for the Summer Music Festival?',
-        likes: 12,
-        comments: 4,
-        timeAgo: '2h ago',
-        category: 'Tickets'
+  {
+    id: '1',
+    author: {
+      name: 'Alex Rivera',
+      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex'
     },
-    {
-        id: '2',
-        author: {
-            name: 'Jessica Wu',
-            avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jess'
-        },
-        content: 'Just came back from the Tech Conference. The AI panel was mind-blowing! 🤯',
-        likes: 45,
-        comments: 18,
-        timeAgo: '5h ago',
-        category: 'Discussion'
+    content: 'Does anyone have extra tickets for the Summer Music Festival?',
+    likes: 12,
+    comments: 4,
+    timeAgo: '2h ago',
+    category: 'Tickets'
+  },
+  {
+    id: '2',
+    author: {
+      name: 'Jessica Wu',
+      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Jess'
     },
-    {
-        id: '3',
-        author: {
-            name: 'David Miller',
-            avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dave'
-        },
-        content: 'Looking for a group to go to the Gaming Tournament this weekend.',
-        likes: 8,
-        comments: 12,
-        timeAgo: '1d ago',
-        category: 'Social'
-    }
+    content: 'Just came back from the Tech Conference. The AI panel was mind-blowing! 🤯',
+    likes: 45,
+    comments: 18,
+    timeAgo: '5h ago',
+    category: 'Discussion'
+  },
+  {
+    id: '3',
+    author: {
+      name: 'David Miller',
+      avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Dave'
+    },
+    content: 'Looking for a group to go to the Gaming Tournament this weekend.',
+    likes: 8,
+    comments: 12,
+    timeAgo: '1d ago',
+    category: 'Social'
+  }
 ];
 
 export const INITIAL_NOTIFICATIONS: Notification[] = [
@@ -218,11 +213,3 @@ export const INITIAL_NOTIFICATIONS: Notification[] = [
     type: 'warning'
   }
 ];
-
-export const INITIAL_USER: UserProfile = {
-  name: 'John Doe',
-  username: '@johndoe',
-  email: 'john.doe@example.com',
-  avatarUrl: 'JD',
-  bio: 'Event enthusiast and tech lover.'
-};

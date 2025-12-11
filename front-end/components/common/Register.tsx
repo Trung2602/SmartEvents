@@ -6,8 +6,6 @@ import api, { endpoints } from "@/lib/APIs";
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
-const img7123025LogoGoogleGIcon1 = "/ba0125944a03ca97b1ed406352aed35dd6c674cb.png";
-
 type RegisterProps = {
   onSuccess?: () => void;
 };

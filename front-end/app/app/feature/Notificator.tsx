@@ -28,7 +28,7 @@ export default function Notificator() {
         <div className="relative" ref={notifRef}>
             <button
                 onClick={() => setIsNotifOpen(!isNotifOpen)}
-                className="relative text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors p-1"
+                className="cursor-pointer relative text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white transition-colors p-1"
             >
                 <Bell size={20} />
                 {unreadCount > 0 && (
@@ -41,7 +41,7 @@ export default function Notificator() {
                     <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-white/5">
                         <h3 className="font-semibold text-gray-900 dark:text-white text-sm">Notifications</h3>
                         {unreadCount > 0 && (
-                            <button onClick={handleMarkAllNotificationsRead} className="text-xs text-brand-purple hover:text-purple-600 font-medium">Mark all read</button>
+                            <button onClick={handleMarkAllNotificationsRead} className="cursor-pointer text-xs text-brand-purple hover:text-purple-600 font-medium">Mark all read</button>
                         )}
                     </div>
                     <div className="max-h-[300px] overflow-y-auto">
@@ -49,7 +49,7 @@ export default function Notificator() {
                             <div className="p-8 text-center text-gray-400 text-sm">No notifications</div>
                         ) : (
                             notifications.map(notif => (
-                                <div onClick={() => setNotifications(prevNotis => prevNotis.map(n => n.id === notif.id? {...n, isRead: true}: n))} key={notif.id} className={`p-4 border-b border-gray-100 dark:border-white/5 last:border-none hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${!notif.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                                <div onClick={() => setNotifications(prevNotis => prevNotis.map(n => n.id === notif.id? {...n, isRead: true}: n))} key={notif.id} className={`cursor-pointer p-4 border-b border-gray-100 dark:border-white/5 last:border-none hover:bg-gray-50 dark:hover:bg-white/5 transition-colors ${!notif.isRead ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
                                     <div className="flex gap-3">
                                         <div className={`mt-1 w-2 h-2 rounded-full shrink-0 ${!notif.isRead ? 'bg-blue-500' : 'bg-transparent'}`}></div>
                                         <div>

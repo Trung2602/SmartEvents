@@ -1,8 +1,9 @@
 'use client';
 
-import { Compass, Bookmark, User, Footprints, Settings, MessageCircleQuestion, LucideIcon, Heart, MessageCircle } from 'lucide-react';
+import { AppPage } from '@/lib/types';
+import { Compass, User, Footprints, Settings, MessageCircleQuestion, LucideIcon, Heart, MessageCircle, PlusCircle } from 'lucide-react';
 import Link from 'next/link';
-import { ElementType, useState } from 'react';
+import { useState } from 'react';
 
 interface NavButtonProps {
   label: string;
@@ -24,65 +25,98 @@ function NavButton({ label, Icon, isActive, onClick }: NavButtonProps) {
   );
 }
 
-export default function Sidebar({ onNavChange, active }: { onNavChange?: (label: string) => void, active?: string }) {
+interface SidebarProps {
+  onNavChange?: (label: AppPage) => void,
+  active?: string,
+  isMobileOpen?: boolean;
+  onCloseMobile?: () => void;
+  onCreateEvent: () => void;
+  onOpenSettings: () => void;
+}
+
+export default function Sidebar({ onNavChange, active, onCreateEvent, isMobileOpen = false, onCloseMobile, onOpenSettings }: SidebarProps) {
   const [activeNav, setActiveNav] = useState(active ?? 'Discover');
 
   // keep internal state in sync when parent controls active
   if (active && active !== activeNav) {
     setActiveNav(active);
   }
-
   const navItems = [
-    { label: 'Discover', icon: Compass },
-    { label: 'Channel', icon: MessageCircle },
-    { label: 'Bookmarks', icon: Heart },
-    { label: 'Profile', icon: User },
-    { label: 'Activity', icon: Footprints },
+    { label: 'Discover' as AppPage, icon: Compass },
+    { label: 'Channel' as AppPage, icon: MessageCircle },
+    { label: 'Bookmarks' as AppPage, icon: Heart },
+    { label: 'Profile' as AppPage, icon: User },
+    { label: 'Activity' as AppPage, icon: Footprints },
   ];
 
   const bottomNavItems = [
-    { label: 'Settings', icon: Settings },
-    { label: 'Support', icon: MessageCircleQuestion },
+    { label: 'Settings' as AppPage, icon: Settings },
+    { label: 'Support' as AppPage, icon: MessageCircleQuestion },
   ];
 
-  const handleNavClick = (label: string) => {
+  const handleNavClick = (label: AppPage) => {
+    if (label === 'Settings') {onOpenSettings(); return;}
+    if (label === 'Support') return;
     setActiveNav(label);
     onNavChange?.(label);
-    // parent handles in-app navigation via onNavChange
   };
 
   return (
-    <nav className="fixed left-0 top-0 bottom-0 w-56 bg-white border-r border-gray-200 flex flex-col bg-white dark:bg-[#050505] dark:border-white/5 transition-all duration-200">
-      <Link href='/' className='p-6 flex gap-2 items-center'>
-        <div className='h-8 w-8 logo'>
-          <div className='h-2.5 w-2.5' />
-        </div>
-        <h2 className="text-2xl font-bold text-black dark:text-white">Interest.</h2>
-      </Link>
+    <>
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 lg:hidden animate-in fade-in duration-300"
+          onClick={onCloseMobile}
+        />
+      )}
+      
+      <nav className={`
+      fixed left-0 top-0 bottom-0 w-56 bg-white border-r border-gray-200 flex flex-col z-50
+      bg-white dark:bg-[#050505] dark:border-white/5 transition-all duration-200 
+      ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}
+      >
+        <Link href='/' className='p-6 flex gap-2 items-center'>
+          <div className='h-8 w-8 logo'>
+            <div className='h-2.5 w-2.5' />
+          </div>
+          <h2 className="text-2xl font-bold text-black dark:text-white">Interest.</h2>
+        </Link>
 
-      <div className="px-4 space-y-1 pb-4">
-        {navItems.map((item) => (
-          <NavButton
-            key={item.label}
-            label={item.label}
-            Icon={item.icon}
-            isActive={activeNav === item.label}
-            onClick={() => handleNavClick(item.label)}
-          />
-        ))}
-      </div>
-      <div className="mx-4 border-t border-gray-200 dark:border-white/20 transition-all duration-200" />
-      <div className="px-4 py-4 space-y-1">
-        {bottomNavItems.map((item) => (
-          <NavButton
-            key={item.label}
-            label={item.label}
-            Icon={item.icon}
-            isActive={activeNav === item.label}
-            onClick={() => handleNavClick(item.label)}
-          />
-        ))}
-      </div>
-    </nav>
+        <div className="px-4 space-y-1 pb-4">
+
+          <button
+            onClick={() => { onCreateEvent(); if (onCloseMobile) onCloseMobile(); }}
+            className="w-full mb-6 bg-gray-900 dark:bg-white text-white dark:text-black py-3.5
+              rounded-xl text-sm font-medium flex items-center justify-center gap-2 hover:shadow-lg 
+              hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
+          >
+            <PlusCircle size={20} />
+            <span>Create Event</span>
+          </button>
+
+          {navItems.map((item) => (
+            <NavButton
+              key={item.label}
+              label={item.label}
+              Icon={item.icon}
+              isActive={activeNav === item.label}
+              onClick={() => { handleNavClick(item.label); if (onCloseMobile) onCloseMobile();}}
+            />
+          ))}
+        </div>
+        <div className="mx-4 border-t border-gray-200 dark:border-white/20 transition-all duration-200" />
+        <div className="px-4 py-4 space-y-1">
+          {bottomNavItems.map((item) => (
+            <NavButton
+              key={item.label}
+              label={item.label}
+              Icon={item.icon}
+              isActive={activeNav === item.label}
+              onClick={() => { handleNavClick(item.label); if (onCloseMobile) onCloseMobile();}}
+            />
+          ))}
+        </div>
+      </nav>
+    </>
   );
 }
