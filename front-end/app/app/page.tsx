@@ -10,9 +10,6 @@ import Sidebar from '@/app/app/Sidebar';
 import { AppPage, DateFilter, Event, Theme, UserProfile, ViewMode } from '@/lib/types';
 import Footer from './Footer';
 import { Menu } from 'lucide-react';
-import { Modal } from '@/components/common/Modal';
-import Login from '@/components/common/Login';
-import Register from '@/components/common/Register';
 import { eventApi } from '@/lib/api/event';
 import Discover from './pages/Discover';
 import Activity from './pages/Activity';
@@ -49,9 +46,6 @@ export default function Home() {
   const moreCatRef = useRef<HTMLDivElement>(null);
   const countryRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
-  // auth modals
-  const [showSignInModal, setShowSignInModal] = useState(false);
-  const [showSignUpModal, setShowSignUpModal] = useState(false);
 
   const handleRegisterEvent = (event: Event) => {
     const updatedEvent = { ...event, isRegistered: true };
@@ -153,11 +147,11 @@ export default function Home() {
 
       {/* Main content area */}
       <div className="flex-1 flex flex-col lg:ml-56 min-h-screen dark:!bg-[#0a0a0a]">
-        {/* Header - Fixed on top */}
         <Header title={currentTitle} onNavigate={(label: string) => {
           setCurrentTitle(label);
         }}
-          onLogin={() => setShowSignInModal(true)} onRegister={() => setShowSignUpModal(true)}
+          onLogin={() => setShowSignInModal(true)} 
+          onRegister={() => setShowSignUpModal(true)}
         />
 
         {/* Main content */}
@@ -178,9 +172,6 @@ export default function Home() {
         <Login onSuccess={() => setShowSignInModal(false)} />
       </Modal>
 
-      <Modal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)}>
-        <Register onSuccess={() => setShowSignUpModal(false)} />
-      </Modal>
       <SettingsDialog
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}

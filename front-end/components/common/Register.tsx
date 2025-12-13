@@ -6,6 +6,8 @@ import api, { endpoints } from "@/lib/APIs";
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
+const img7123025LogoGoogleGIcon1 = "/ba0125944a03ca97b1ed406352aed35dd6c674cb.png";
+
 type RegisterProps = {
   onSuccess?: () => void;
 };
@@ -48,13 +50,10 @@ export default function Register({ onSuccess }: RegisterProps) {
     if (!otp) return toast.error('Vui lòng nhập mã OTP');
     try {
       setLoading(true);
-      // call backend verifyEmail endpoint which expects email and otp as request params
       const res = await api.post('/user/verify-email', null, { params: { email, otp } });
       toast.success(res.data?.message || 'Xác thực thành công');
       setShowOtpModal(false);
-      // notify parent (if Register is rendered inside a modal) to close it
       onSuccess?.();
-      // then redirect to landing/login page
       router.push('/');
     } catch (err: any) {
       console.error('otp verify error', err);
