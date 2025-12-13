@@ -6,9 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import me.heahaidu.aws.fcj.eventservice.controller.dto.request.CreateEventRequest;
 import me.heahaidu.aws.fcj.eventservice.controller.dto.response.EventListResponse;
 import me.heahaidu.aws.fcj.eventservice.controller.dto.response.EventResponse;
+import me.heahaidu.aws.fcj.eventservice.service.EventInterestService;
+import me.heahaidu.aws.fcj.eventservice.service.EventRegisterService;
 import me.heahaidu.aws.fcj.eventservice.service.EventService;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,8 @@ import java.util.UUID;
 public class EventController {
 
     private final EventService eventService;
+    private final EventInterestService eventInterestService;
+    private final EventRegisterService eventRegisterService;
 
     @GetMapping("/events")
     public ResponseEntity<EventListResponse> getEvents(
@@ -65,7 +68,16 @@ public class EventController {
             @PathVariable UUID eventId,
             @RequestHeader("X-User-UUID") UUID userUuid,
             @RequestHeader("X-User-Email") String email) {
-        eventService.registerEvent(eventId, userUuid, email);
+        eventRegisterService.registerEvent(eventId, userUuid, email);
+        return ResponseEntity.status(200).build();
+    }
+
+    @GetMapping("/event/unregister/{eventId}")
+    public ResponseEntity<?> unregisterEvent(
+            @PathVariable UUID eventId,
+            @RequestHeader("X-User-UUID") UUID userUuid,
+            @RequestHeader("X-User-Email") String email) {
+        eventRegisterService.unregisterEvent(eventId, userUuid, email);
         return ResponseEntity.status(200).build();
     }
 
@@ -76,13 +88,19 @@ public class EventController {
     }
 
     @GetMapping("/event/interest/{eventId}")
-    public ResponseEntity<?> interestEvent(@PathVariable UUID eventId) {
+    public ResponseEntity<?> interestEvent(
+            @PathVariable UUID eventId,
+            @RequestHeader("X-User-UUID") UUID userUuid) {
 
+        eventInterestService.interest(eventId, userUuid);
         return ResponseEntity.status(200).build();
     }
 
     @GetMapping("/event/uninterest/{eventId}")
-    public ResponseEntity<?> uninterestEvent(@PathVariable UUID eventId) {
+    public ResponseEntity<?> uninterestEvent(
+            @PathVariable UUID eventId,
+            @RequestHeader("X-User-UUID") UUID userUuid) {
+        eventInterestService.uninterest(eventId, userUuid);
         return ResponseEntity.status(200).build();
     }
 

@@ -14,6 +14,5 @@ public interface EventService {
     EventResponse createEvent(CreateEventRequest request, UUID createdBy);
     EventResponse deleteEvent(UUID event_id);
     EventResponse editEvent(UUID event_id, CreateEventRequest request, UUID createdBy);
-    RegistrationResponse registerEvent(UUID event_id, UUID createdBy, String userEmail);
-    RegistrationResponse unregisterEvent(UUID event_id, UUID createdBy, String userEmail);
+
 }

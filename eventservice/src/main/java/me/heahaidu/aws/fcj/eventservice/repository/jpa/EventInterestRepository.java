@@ -46,5 +46,5 @@ public interface EventInterestRepository extends JpaRepository<EventInterest, UU
             AND e.deleted_at IS NULL AND e.status = 'PUBLISHED'
             AND e.visibility = 'PUBLIC'
     """, nativeQuery = true)
-    Optional<List<EventProjection>> findAllEventUserInterest(@Param("userUuid") UUID userUuid);
+    List<EventProjection> findAllEventUserInterest(@Param("userUuid") UUID userUuid);
 }
