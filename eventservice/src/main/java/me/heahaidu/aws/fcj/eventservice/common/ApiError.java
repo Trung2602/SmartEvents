@@ -1,4 +1,4 @@
-package me.heahaidu.aws.fcj.eventservice.exception;
+package me.heahaidu.aws.fcj.eventservice.common;
 
 import java.time.Instant;
 

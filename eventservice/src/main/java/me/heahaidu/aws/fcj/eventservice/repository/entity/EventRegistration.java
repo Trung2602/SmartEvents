@@ -28,7 +28,8 @@ public class EventRegistration {
     @Column(name = "user_uuid")
     private UUID userUuid;
 
-    @Column(name = "registration_status", length = 15)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "registration_status")
     private RegistrationStatus registrationStatus;
 
     @Column(name = "registration_notes", columnDefinition = "TEXT")

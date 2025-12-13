@@ -77,6 +77,7 @@ public class EventController {
 
     @GetMapping("/event/interest/{eventId}")
     public ResponseEntity<?> interestEvent(@PathVariable UUID eventId) {
+
         return ResponseEntity.status(200).build();
     }
 

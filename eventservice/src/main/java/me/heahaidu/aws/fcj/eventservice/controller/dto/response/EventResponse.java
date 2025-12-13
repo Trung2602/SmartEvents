@@ -4,6 +4,7 @@ import lombok.*;
 import me.heahaidu.aws.fcj.eventservice.repository.entity.Event;
 import me.heahaidu.aws.fcj.eventservice.repository.entity.EventContent;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -23,6 +24,8 @@ public class EventResponse {
     private Integer maxParticipants;
     private Integer currentParticipants;
     private String imageUrl;
+    private BigDecimal price;
+    private String currency;
 
     public static EventResponse from(Event event, EventContent content) {
         return EventResponse.builder()

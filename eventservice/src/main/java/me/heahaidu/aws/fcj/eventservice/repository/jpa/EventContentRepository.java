@@ -18,7 +18,22 @@ import java.util.UUID;
 public interface EventContentRepository extends JpaRepository<EventContent, UUID> {
     @Query(value =
             """
-            SELECT *
+            SELECT
+                e.uuid                      AS eventUuid,
+                e.page_uuid                 AS pageUuid,
+                e.current_participants      AS currentParticipants,
+                e.max_participants          AS maxParticipants,
+                ec.title                    AS title,
+                ec.start_time               AS startTime,
+                ec.end_time                 AS endTime,
+                ec.location                 AS location,
+                ec.city                     AS city,
+                ec.country_code             AS countryCode,
+                ec.category                 AS category,
+                ec.image_urls               AS imageUrls,
+                ec.price                    AS price,
+                ec.currency                 AS currency,
+                ec.description              AS description
             FROM event e
             JOIN event_content ec ON ec.uuid = e.current_version_uuid
             WHERE CAST(:event_uuid as UUID) IS NOT NULL AND CAST(:event_uuid as UUID) = e.uuid
