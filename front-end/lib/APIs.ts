@@ -9,7 +9,7 @@ export const endpoints = {
   "login": "auth/login",
   "verify-email": "register/verify-email",
   "profile": "secure/profile",
-  "profile-update": "account/edit",
+  "profile-update": "register/profile",
 
   // Page
   "page-update": "page-update",
