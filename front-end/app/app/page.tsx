@@ -10,9 +10,6 @@ import Sidebar from '@/app/app/Sidebar';
 import { AppPage, DateFilter, Event, Theme, UserProfile, ViewMode } from '@/lib/types';
 import Footer from './Footer';
 import { Menu } from 'lucide-react';
-import { Modal } from '@/components/common/Modal';
-import Login from '@/components/common/Login';
-import Register from '@/components/common/Register';
 import { eventApi } from '@/lib/api/event';
 import Discover from './pages/Discover';
 import Activity from './pages/Activity';
@@ -30,7 +27,6 @@ export default function Home() {
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
-  const [showSignInModal, setShowSignInModal] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
@@ -51,7 +47,6 @@ export default function Home() {
   const searchParams = useSearchParams();
   // auth modals
   const [showSignInModal, setShowSignInModal] = useState(false);
-  const [showSignUpModal, setShowSignUpModal] = useState(false);
 
   const handleRegisterEvent = (event: Event) => {
     const updatedEvent = { ...event, isRegistered: true };

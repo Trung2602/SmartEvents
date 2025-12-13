@@ -28,7 +28,7 @@ export const useStompChat = (url: string, topic: string, appDestination: string)
 
       client.subscribe(topic, (msg: IMessage) => {
         const body = JSON.parse(msg.body);
-        setMessages((prev) => [...prev, { ...body, timestamp: new Date() }]);
+        setMessages((prev) => [...prev, {id: Date.now().toString(), sender: 'ai', text: body['answer'], relatedEventIds: body['sourceEventUuids'], timestamp: new Date() }]);
         setIsTyping(false);
       });
     };
