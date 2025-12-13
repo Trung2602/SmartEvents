@@ -1,4 +1,13 @@
 package me.heahaidu.aws.fcj.notificationservice.kafka;
 
-public record NotificationEvent() {
-}
+import java.util.UUID;
+
+public record NotificationEvent(
+        String eventId,
+        String eventType,
+        UUID userUuid,
+        String title,
+        String body,
+        String deepLink,
+        String imageUrl
+) {}
