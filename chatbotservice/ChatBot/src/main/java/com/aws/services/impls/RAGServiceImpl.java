@@ -1,18 +1,22 @@
 package com.aws.services.impls;
 
 import com.aws.pojo.AnswerResponse;
+import com.aws.pojo.EventMessageDTO;
 import com.aws.pojo.EventVectorChunk;
 import com.aws.services.GenminiService;
 import com.aws.services.RAGService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import com.aws.repositories.EventVectorChunkRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class RAGServiceImpl implements RAGService {
 
@@ -36,7 +40,39 @@ public class RAGServiceImpl implements RAGService {
         }
     }
 
-//    @Override
+    @Override
+    public void createChunksFromEvent(EventMessageDTO event) {
+
+        // Gom text thành 1 block
+        String fullText = String.join("\n",
+                event.getTitle(),
+                event.getDescription(),
+                "Location: " + event.getLocation(),
+                "City: " + event.getCity(),
+                "Category: " + event.getCategory()
+        );
+        log.info("FULL TEXT = {}", fullText);
+
+        // Chunk text
+        List<String> chunks = splitText(fullText, 300);
+
+        // Reuse logic cũ
+        createChunks(event.getUuid(), chunks);
+    }
+
+    private List<String> splitText(String text, int maxLength) {
+        List<String> chunks = new ArrayList<>();
+        int start = 0;
+
+        while (start < text.length()) {
+            int end = Math.min(start + maxLength, text.length());
+            chunks.add(text.substring(start, end));
+            start = end;
+        }
+        return chunks;
+    }
+
+    //    @Override
 //    public String queryRAG(String question, int topK) {
 //        float[] queryEmbedding = genminiService.getEmbedding(question);
 //
@@ -55,13 +91,13 @@ public class RAGServiceImpl implements RAGService {
 //    }
     @Override
     public AnswerResponse queryRAG(String question, int topK) {
-        // 1️⃣ Lấy embedding của câu hỏi
+        //  Lấy embedding của câu hỏi
         float[] queryEmbedding = genminiService.getEmbedding(question);
 
-        // 2️⃣ Lấy top K chunk tương tự
+        //Lấy top K chunk tương tự
         List<EventVectorChunk> topChunks = findTopKSimilar(queryEmbedding, topK);
 
-        // 3️⃣ Gom nội dung chunk thành prompt gửi cho model
+        //Gom nội dung chunk thành prompt gửi cho model
         StringBuilder prompt = new StringBuilder();
         for (EventVectorChunk c : topChunks) {
             prompt.append(c.getChunkText()).append("\n---\n");
@@ -71,16 +107,16 @@ public class RAGServiceImpl implements RAGService {
         System.out.println("=== PROMPT SENT TO GEMINI ===");
         System.out.println(prompt);
 
-        // 4️⃣ Lấy danh sách UUID của các event liên quan
+        // Lấy danh sách UUID của các event liên quan
         List<UUID> sourceEventUuids = topChunks.stream()
                 .map(EventVectorChunk::getSourceEventUuid)
                 .distinct()
                 .toList();
 
-        // 5️⃣ Gọi model để tạo câu trả lời
+        // Gọi model để tạo câu trả lời
         String answer = genminiService.generateAnswer(prompt.toString());
 
-        // 6️⃣ Trả về AnswerResponse
+        // Trả về AnswerResponse
         return new AnswerResponse(sourceEventUuids, answer);
     }
 

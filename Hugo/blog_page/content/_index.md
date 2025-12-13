@@ -5,6 +5,8 @@ type = "home"
 
 ## My FCJ Blog
 
+
+<!-- 
 > [!IMPORTANT] Overview
 > This is a personal blog created with Hugo to document my "First Cloud Journey" (FCJ). It serves as a living journal of my learning experiences, challenges, and insights as I explore the fundamentals and advanced topics of cloud computing.
 
@@ -46,4 +48,4 @@ This is a personal blog, but you are welcome to use it as a reference for your o
 
 ## License
 
-This project is open-sourced under the MIT License. See the [**LICENSE**](https://github.com/trungnte/my-fcj-blog/blob/master/LICENCE.md) file for more details.
+This project is open-sourced under the MIT License. See the [**LICENSE**](https://github.com/trungnte/my-fcj-blog/blob/master/LICENCE.md) file for more details. -->

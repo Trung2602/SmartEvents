@@ -35,10 +35,8 @@ public class GenminiServiceImpl implements GenminiService {
                         .build())
                 .bodyValue(Map.of("content", Map.of("parts", new Object[]{Map.of("text", text)}))) // Corrected body structure for V1 API
                 .retrieve()
-                //.bodyToMono(EmbeddingResponse.class)
-                //.map(r -> r.getEmbedding().getValues());
                 .bodyToMono(String.class)
-                .doOnNext(raw -> System.out.println("🔍 RAW JSON = " + raw))
+                //.doOnNext(raw -> System.out.println("🔍 RAW JSON = " + raw))
                 .map(raw -> {
                     try {
                         return new ObjectMapper().readValue(raw, EmbeddingResponse.class);
