@@ -22,7 +22,7 @@ export const MOCK_USERS: UserProfile[] = [
 ];
 
 export const ALL_CATEGORIES = ['All', 'Music', 'Tech', 'Art', 'Gaming', 'Education', 'Business', 'Food', 'Sports', 'Health', 'Fashion', 'Other'];
-export const AVAILABLE_COUNTRIES = ['USA', 'UK', 'Canada', 'Germany', 'France', 'Japan'];
+export const AVAILABLE_COUNTRIES = ['USA', 'UK', 'Canada', 'Germany', 'France', 'Japan', 'Vietnam'];
 
 export const INITIAL_NOTIFICATIONS: Notification[] = [
   {

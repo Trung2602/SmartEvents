@@ -4,6 +4,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { X, Calendar, MapPin, Heart, Pencil, Trash2, Ticket, Download, Ban } from 'lucide-react';
 import { Event, UserProfile } from '@/lib/types';
 import { format } from 'date-fns';
+import { eventApi } from '@/lib/api/event';
 
 interface EventDetailDialogProps {
     event: Event | null;
@@ -60,8 +61,13 @@ export default function EventDetailDialog({
 }: EventDetailDialogProps) {
     const [isScrolled, setIsScrolled] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const [description, setDescription] = useState<string>();
 
     useEffect(() => {
+
+        if (event) {
+            handlerEvent(event.uuid)
+        }
         const handleScroll = () => {
             if (scrollRef.current) {
                 setIsScrolled(scrollRef.current.scrollTop > 200);
@@ -72,12 +78,14 @@ export default function EventDetailDialog({
         return () => {
             if (scrollContainer) scrollContainer.removeEventListener('scroll', handleScroll);
         };
-        console.log("A")
     }, [event]);
+
+    async function handlerEvent(uuid: string) {
+        setDescription((await eventApi.get(uuid)).description)
+    }
 
     if (!event) return null;
 
-    const descriptionToRender = event.description && event.description.length > 50 ? event.description : SAMPLE_DESCRIPTION;
     const canEdit = event.isOwner;
     const canDelete = event.isOwner;
     const organizerName = event.organizerName || '';
@@ -273,7 +281,7 @@ export default function EventDetailDialog({
                         <div>
                             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">About Event</h3>
                             <div className="text-gray-600 dark:text-gray-300 leading-relaxed text-base whitespace-pre-line">
-                                {descriptionToRender}
+                                {description}
                             </div>
                         </div>
 

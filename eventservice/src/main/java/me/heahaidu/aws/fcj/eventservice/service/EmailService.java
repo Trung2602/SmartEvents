@@ -49,10 +49,10 @@ public class EmailService {
 
             Context context = new Context();
             context.setVariable("eventTitle", request.event.getTitle());
-            context.setVariable("eventDate", formatDate(request.event.getStart_time()));
-            context.setVariable("eventTime", formatTime(request.event.getStart_time()));
+            context.setVariable("eventDate", formatDate(request.event.getStartTime()));
+            context.setVariable("eventTime", formatTime(request.event.getEndTime()));
             context.setVariable("eventLocation", request.event.getLocation());
-            context.setVariable("eventUrl", frontendBaseUrl + "/events/" + request.event.getEvent_uuid());
+            context.setVariable("eventUrl", frontendBaseUrl + "/events/" + request.event.getEventUuid());
             context.setVariable("qrCodeCid", "qrcode");
 
             String htmlContent = templateEngine.process("registration-confirmation", context);

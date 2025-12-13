@@ -113,17 +113,21 @@ public class EventServiceImpl implements EventService {
     public EventResponse getEvent(UUID event_id) {
         EventContentProjection item = eventContentRepository.findByEventByUuid(event_id);
         return EventResponse.builder()
-                .uuid(item.getEvent_uuid())
-                .pageUuid(item.getPage_uuid())
+                .uuid(item.getEventUuid())
+                .pageUuid(item.getPageUuid())
                 .title(item.getTitle())
                 .description(item.getDescription())
-                .startTime(item.getStart_time())
-                .endTime(item.getEnd_time())
+                .startTime(item.getStartTime())
+                .endTime(item.getEndTime())
                 .location(item.getLocation())
                 .city(item.getCity())
+                .imageUrl(item.getImageUrls()[0])
                 .category(item.getCategory())
-                .maxParticipants(item.getMax_participants())
-                .currentParticipants(item.getCurrent_participants())
+                .maxParticipants(item.getMaxParticipants())
+                .currentParticipants(item.getCurrentParticipants())
+                .price(item.getPrice())
+                .currency(item.getCurrency())
+                .countryCode(item.getCountryCode())
                 .build();
     }
 
@@ -237,6 +241,7 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional
     public RegistrationResponse registerEvent(UUID eventUuid, UUID userUuid, String email) {
 
         log.info("Registering for event: eventUuid={}, userUuid={}, email={}", eventUuid.toString(), userUuid.toString(), email);
@@ -263,12 +268,18 @@ public class EventServiceImpl implements EventService {
         EventRegistration registration = EventRegistration.builder()
                 .eventUuid(eventUuid)
                 .userUuid(userUuid)
+                .createdAt(Instant.now())
                 .registrationStatus(RegistrationStatus.REGISTERED)
+                .currency(content.getCurrency())
+                .ticketPrice(content.getPrice())
+                .updatedAt(Instant.now())
                 .build();
 
         registration = eventRegistrationRepository.save(registration);
 
-        event.setCurrentParticipants(event.getCurrentParticipants() + 1);
+        int cur = event.getCurrentParticipants() == null ? 0 : event.getCurrentParticipants();
+        event.setCurrentParticipants(cur + 1);
+
         eventRepository.save(event);
 
         sendConfirmationEmail(registration, userUuid, email);

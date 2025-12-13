@@ -4,6 +4,7 @@ import { LogOut, Settings, User as UserIcon } from "lucide-react";
 import { useEffect, useRef, useState, useContext } from "react";
 import { AuthContext } from '@/context/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
+import SettingsDialog from "@/components/dialogs/SettingsDialog";
 
 export default function Account({ onNavigate }: { onNavigate?: (label: string) => void }) {
 
@@ -12,6 +13,7 @@ export default function Account({ onNavigate }: { onNavigate?: (label: string) =
     const router = useRouter();
     const pathname = usePathname();
     const userRef = useRef<HTMLDivElement>(null);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false); 
 
     useEffect(() => {
         removeEventListener
@@ -84,7 +86,7 @@ export default function Account({ onNavigate }: { onNavigate?: (label: string) =
                             Profile
                         </button>
                         <button
-                            onClick={() => { setIsUserMenuOpen(false); router.push('/app/settings'); }}
+                            onClick={() => { setIsUserMenuOpen(false); setIsSettingsOpen(true); }}
                             className="cursor-pointer w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors"
                         >
                             <Settings size={16} />
@@ -104,6 +106,7 @@ export default function Account({ onNavigate }: { onNavigate?: (label: string) =
                     </div>
                 </div>
             )}
+            <SettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)}/>
         </div>
     )
 }

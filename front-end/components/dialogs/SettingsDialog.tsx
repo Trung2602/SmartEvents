@@ -1,44 +1,47 @@
 
 import React, { useState, useEffect, useContext, useRef } from 'react';
-import { User, Bell, Shield, Palette, CheckCircle2, X, Save, Lock, Eye, EyeOff, Monitor, Sun, Moon, Globe, Clock, MapPin, ChevronRight, Mail, Upload, Trash2, LogOut } from 'lucide-react';
+import { User, Bell, Shield, X, Monitor, Sun, Moon, Globe, Clock, ChevronRight, Mail, Trash2, LogOut, AtSign } from 'lucide-react';
 import { Theme, UserProfile } from '@/lib/types';
 import { AuthContext } from '@/context/AuthContext';
-import { INITIAL_USER } from '@/lib/services/mockData';
+import { useTheme } from '@/context/ThemeContext';
 
 interface SettingsDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  currentTheme: Theme;
-  setTheme: (theme: Theme) => void;
 }
 
-const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose, currentTheme, setTheme }) => {
-  // const { user } = useContext(AuthContext)
-  const user = INITIAL_USER;
+const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
+  const { user } = useContext(AuthContext)
   const [activeTab, setActiveTab] = useState('My account');
 
   // Password state
-  const [passwordData, setPasswordData] = useState({ current: '', new: '', confirm: '' });
-  const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false });
+  // const [passwordData, setPasswordData] = useState({ current: '', new: '', confirm: '' });
+  // const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false });
   const [privacySettings, setPrivacySettings] = useState({ isPrivate: false, showActivity: true });
-
+  const fileInputRef = useRef<HTMLInputElement>(null);
   // Dirty state check to show Save button only when needed (optional, simplistic version here)
   const [isDirty, setIsDirty] = useState(false);
+  const { theme, setTheme } = useTheme();
+
 
 
   // Local state for form handling
-  const [formData, setFormData] = useState<UserProfile>(user);
+  const [formData, setFormData] = useState<UserProfile>(user || {} as UserProfile);
 
 
   useEffect(() => {
-    setFormData(user);
-    setIsDirty(false);
+    if (user) {
+      setFormData(user);
+      setIsDirty(false);
+    }
   }, [user, isOpen]);
 
   // Reset dirty state when changing tabs to avoid confusion in this simple implementation
   useEffect(() => {
     setIsDirty(false);
   }, [activeTab]);
+
+  if (!isOpen || !user) return (<></>);
 
   const sidebarGroups = [
     {
@@ -55,6 +58,21 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose, curren
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     // setFormData({ ...formData, [e.target.name]: e.target.value });
     // setIsDirty(true);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      alert("File size must be less than 10MB");
+      return;
+    }
+
+    const fileType = file.type.startsWith('video') ? 'video' : 'image';
+    const url = URL.createObjectURL(file);
+    // setMediaPreview(url);
+    setFormData(prev => ({ ...prev, imageUrl: url, imageType: fileType }));
   };
 
   const handleSave = () => {
@@ -86,12 +104,13 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose, curren
   return (
     isOpen &&
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={handleBackdropClick} >
-      <div className="bg-white dark:bg-[#191919] w-full max-w-5xl h-[700px] rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in fade-in zoom-in duration-200 font-sans">
+      <div className="bg-white dark:bg-[#191919] w-full max-w-5xl h-[650px] rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in fade-in zoom-in duration-200 font-sans">
 
         {/* SIDEBAR */}
-        <div className="w-full md:w-[240px] bg-[#F7F7F5] dark:bg-[#202020] border-r border-gray-200 dark:border-[#2f2f2f] flex flex-col">
+        <div className="hidden md:flex w-[220px] bg-[#F7F7F5] dark:bg-[#202020] border-r border-gray-200 dark:border-[#2f2f2f] flex flex-col">
 
           <div className="flex-1 overflow-y-auto px-2 space-y-6 mt-3">
+
             {sidebarGroups.map((group, idx) => (
               <div key={idx}>
                 <div className="px-3 mb-1 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -102,7 +121,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose, curren
                     <li key={item.id}>
                       <button
                         onClick={() => setActiveTab(item.id)}
-                        className={`w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === item.id
+                        className={`cursor-pointer w-full flex items-center gap-3 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${activeTab === item.id
                           ? 'bg-gray-200/60 dark:bg-white/10 text-gray-900 dark:text-white'
                           : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5'
                           }`}
@@ -123,26 +142,52 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose, curren
             </button>
           </div>
         </div>
+        {/* SIDEBAR - MOBILE (Horizontal Header & Nav) */}
+        <div className="md:hidden w-full bg-[#F7F7F5] dark:bg-[#202020] border-b border-gray-200 dark:border-[#2f2f2f] flex flex-col shrink-0">
+          {/* Mobile Header */}
+          <div className="h-14 px-4 flex items-center justify-between border-b border-gray-200 dark:border-[#353535]">
+            <span className="font-bold text-gray-900 dark:text-white text-base">Settings</span>
+            <button onClick={onClose} className="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400">
+              <X size={20} />
+            </button>
+          </div>
+          {/* Horizontal Scroll Nav */}
+          <div className="flex items-center gap-2 overflow-x-auto px-4 py-3 no-scrollbar">
+            {sidebarGroups.flatMap(g => g.items).map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`cursor-pointer whitespace-nowrap flex items-center gap-1.5 px-4 py-2 rounded-full text-xs font-medium transition-colors border ${activeTab === item.id
+                  ? 'bg-gray-900 text-white dark:bg-white dark:text-black border-transparent'
+                  : 'bg-white dark:bg-white/5 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-white/10'
+                  }`}
+              >
+                <item.icon size={14} />
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
 
         {/* CONTENT AREA */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-[#191919] relative">
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 bg-white dark:bg-[#191919] relative">
 
           {/* Header */}
           <div className="h-14 px-8 border-b border-gray-100 dark:border-[#2f2f2f] flex items-center justify-between shrink-0">
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">{activeTab}</h2>
-            <button onClick={onClose} className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500">
+            <button onClick={onClose} className="hidden md:flex p-1 rounded-md hover:bg-gray-100 dark:hover:bg-white/5 text-gray-500">
               <X size={20} />
             </button>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-8 md:px-16 scroll-smooth">
+          <div className="flex-1 overflow-y-auto p-5 md:p-8 scroll-smooth overscroll-contain">
 
             {/* --- TAB: MY ACCOUNT --- */}
             {activeTab === 'My account' && (
-              <div className="max-w-2xl mx-auto space-y-10">
+              <div className="max-w-2xl mx-auto space-y-10 overscroll-contain overflow-y">
                 {/* Photo Section */}
                 <div className="flex items-center gap-6 pb-6 border-b border-gray-100 dark:border-[#2f2f2f]">
-                  <div className="relative group cursor-pointer">
+                  <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                     <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-white/10 overflow-hidden border border-gray-200 dark:border-white/10">
                       {formData.avatarUrl.length > 2 ? (
                         <img src={formData.avatarUrl} className="w-full h-full object-cover" />
@@ -155,11 +200,19 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose, curren
                     <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-medium">
                       Change
                     </div>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      accept="image/*"
+                      onChange={handleFileChange}
+                    />
                   </div>
                   <div>
                     <h3 className="text-base font-medium text-gray-900 dark:text-white">Profile photo</h3>
                     <div className="text-sm text-gray-500 dark:text-gray-400 mt-1 mb-3">Upload a new avatar. Larger images will be resized automatically.</div>
-                    <button className="text-sm border border-gray-300 dark:border-[#3f3f3f] px-3 py-1 rounded hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-gray-700 dark:text-gray-200">
+                    <button onClick={() => fileInputRef.current?.click()}
+                      className="cursor-pointer text-sm border border-gray-300 dark:border-[#3f3f3f] px-3 py-1 rounded hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-gray-700 dark:text-gray-200">
                       Upload photo
                     </button>
                   </div>
@@ -179,6 +232,19 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose, curren
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 bg-transparent border border-gray-300 dark:border-[#3f3f3f] rounded-md text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
                       />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">Username</label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          name="username"
+                          value={formData.username}
+                          onChange={handleInputChange}
+                          className="w-full px-3 py-2 pl-9 bg-transparent border border-gray-300 dark:border-[#3f3f3f] rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
+                        />
+                        <AtSign size={15} className="absolute left-3 top-2.5 text-gray-400 pointer-events-none" />
+                      </div>
                     </div>
                     <div className="space-y-1.5">
                       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
@@ -246,7 +312,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose, curren
                           <button
                             key={opt.id}
                             onClick={() => setTheme(opt.id as Theme)}
-                            className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 transition-all ${currentTheme === opt.id
+                            className={`px-3 py-1.5 rounded-md text-xs font-medium flex items-center gap-2 transition-all ${theme === opt.id
                               ? 'bg-white dark:bg-[#2f2f2f] text-gray-900 dark:text-white shadow-sm'
                               : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                               }`}

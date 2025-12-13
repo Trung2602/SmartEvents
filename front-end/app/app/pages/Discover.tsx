@@ -30,7 +30,7 @@ export default function Discover({ showSignInPopup, selectedEvent, onSelectedEve
     const [visibleCategories, setVisibleCategories] = useState(ALL_CATEGORIES.slice(0, 6));
     const [selectedCategory, setSelectedCategory] = useState('All');
     const [isMoreCatOpen, setIsMoreCatOpen] = useState(false);
-    const [selectedCountry, setSelectedCountry] = useState('Global');
+    const [selectedCountry, setSelectedCountry] = useState('Vietnam');
     const [isCountryOpen, setIsCountryOpen] = useState(false);
     const [searchTerm, setSearchTerm] = useState<string>();
     const [dateFilter, setDateFilter] = useState<DateFilter>({ start: '', end: '', isAuto: true });
@@ -64,7 +64,6 @@ export default function Discover({ showSignInPopup, selectedEvent, onSelectedEve
 
 
     useEffect(() => {
-        // set current page from query param (e.g. /app?pane=profile)
         load()
 
         const handleClickOutside = (event: MouseEvent) => {
@@ -85,7 +84,6 @@ export default function Discover({ showSignInPopup, selectedEvent, onSelectedEve
     // API
     async function load() {
         const { items, nextCursor, hasNext } = await eventApi.list();
-        console.log('oke')
         setEvents(items)
     }
 

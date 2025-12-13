@@ -44,7 +44,7 @@ export default function Sidebar({ onNavChange, active, onCreateEvent, isMobileOp
   const navItems = [
     { label: 'Discover' as AppPage, icon: Compass },
     { label: 'Channel' as AppPage, icon: MessageCircle },
-    { label: 'Bookmarks' as AppPage, icon: Heart },
+    { label: 'Interest' as AppPage, icon: Heart },
     { label: 'Profile' as AppPage, icon: User },
     { label: 'Activity' as AppPage, icon: Footprints },
   ];
@@ -86,7 +86,7 @@ export default function Sidebar({ onNavChange, active, onCreateEvent, isMobileOp
 
           <button
             onClick={() => { onCreateEvent(); if (onCloseMobile) onCloseMobile(); }}
-            className="w-full mb-6 bg-gray-900 dark:bg-white text-white dark:text-black py-3.5
+            className="cursor-pointer w-full mb-6 bg-gray-900 dark:bg-white text-white dark:text-black py-3.5
               rounded-xl text-sm font-medium flex items-center justify-center gap-2 hover:shadow-lg 
               hover:scale-[1.02] active:scale-[0.98] transition-all duration-300"
           >
