@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Header from '@/components/common/Header';
+import { Modal } from '@/components/common/Modal';
+import Login from '@/components/common/Login';
+import Register from '@/components/common/Register';
 import Sidebar from '@/app/app/Sidebar';
 import LoginView from '@/components/login-view';
 import EventTimeline from '@/components/common/EventCard';
@@ -42,6 +45,9 @@ export default function Home() {
   const moreCatRef = useRef<HTMLDivElement>(null);
   const countryRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
+  // auth modals
+  const [showSignInModal, setShowSignInModal] = useState(false);
+  const [showSignUpModal, setShowSignUpModal] = useState(false);
 
   // Calculate hidden categories for the "More" dropdown
   const hiddenCategories = ALL_CATEGORIES.filter(c => !visibleCategories.includes(c));
@@ -137,7 +143,7 @@ export default function Home() {
           else if (label === 'Profile') setCurrentPage('profile');
           else if (label === 'Bookmarks') setCurrentPage('bookmarks');
           else setCurrentPage('home');
-        }} />
+        }} onLogin={() => setShowSignInModal(true)} onRegister={() => setShowSignUpModal(true)} />
 
         {/* Main content */}
         <main className="flex-1 animate-in fade-in duration-300 slide-in-from-bottom-2">
@@ -260,10 +266,17 @@ export default function Home() {
           ) : currentPage === 'profile' ? (
             <ProfilePane />
           ) : (
-            <Page />
+            <ChannelPage />
           )}
         </main>
         <Footer theme={theme} setTheme={handleSetTheme} />
+        <Modal isOpen={showSignInModal} onClose={() => setShowSignInModal(false)}>
+          <Login onSuccess={() => setShowSignInModal(false)} />
+        </Modal>
+
+        <Modal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)}>
+          <Register onSuccess={() => setShowSignUpModal(false)} />
+        </Modal>
       </div>
     </div>
   );

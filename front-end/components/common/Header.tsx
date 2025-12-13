@@ -11,9 +11,11 @@ import { useRouter } from 'next/navigation';
 interface HeaderProps {
   title?: string;
   onNavigate?: (label: string) => void;
+  onLogin?: () => void;
+  onRegister?: () => void;
 }
 
-export default function Header({ title = 'Discover', onNavigate }: HeaderProps) {
+export default function Header({ title = 'Discover', onNavigate, onLogin, onRegister }: HeaderProps) {
   const { user } = useContext(AuthContext);
   const router = useRouter();
 
@@ -28,8 +30,8 @@ export default function Header({ title = 'Discover', onNavigate }: HeaderProps) 
            </>
          ) : (
            <>
-             <button onClick={() => router.push('/')} className="hidden sm:block text-sm font-medium text-foreground/80 hover:text-foreground transition-colors cursor-pointer">Sign in</button>
-             <Button onClick={() => router.push('/')} className="rounded-full">Sign up</Button>
+             <button onClick={() => onLogin ? onLogin() : router.push('/')} className="hidden sm:block text-sm font-medium text-foreground/80 hover:text-foreground transition-colors cursor-pointer">Sign in</button>
+             <Button onClick={() => onRegister ? onRegister() : router.push('/')} className="rounded-full">Sign up</Button>
            </>
          )}
        </div>

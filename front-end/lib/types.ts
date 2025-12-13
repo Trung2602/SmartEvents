@@ -84,9 +84,26 @@ export interface Notification {
 }
 
 export interface UserProfile {
-  name: string;
-  email: string;
-  username: string;
-  avatarUrl: string;
+  // basic auth fields
+  id?: string | number;
+  name?: string;
+  email?: string;
+  username?: string;
+  avatarUrl?: string;
   bio?: string;
+
+  // profile fields (backend POJO)
+  accountUuid?: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  dateOfBirth?: string; // ISO date string
+  city?: string;
+  countryCode?: string;
+  interests?: any; // jsonb
+  socialLinks?: any; // jsonb
+  preferences?: any; // jsonb
+  privacySettings?: any; // jsonb
+  createdAt?: string;
+  updatedAt?: string;
 }
