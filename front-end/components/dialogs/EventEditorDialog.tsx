@@ -1,22 +1,58 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { X, Calendar, MapPin, Upload, Image as ImageIcon, Search, Plus, ChevronDown } from 'lucide-react';
+import React, { useState, useRef, useEffect, useContext } from 'react';
+import { X, Calendar, MapPin, Upload, Image as ImageIcon, Search, Plus, ChevronDown, Settings, Star, Users } from 'lucide-react';
 import { Event, UserProfile } from '@/lib/types';
 import { MOCK_PAGES, MOCK_USERS } from '@/lib/services/mockData';
+import { AuthContext } from '@/context/AuthContext';
+import { Calendar24 } from '../common/Calandar24';
+import { Combobox, ComboboxOption } from '../ui/combobox';
+import { CATEGORIES } from '@/lib/constants';
+import { Input } from '../common/input';
+import { eventApi } from '@/lib/api/event';
 
 interface EventEditorDialogProps {
     event?: Event | null;
-    user: UserProfile | null;
     isOpen: boolean;
     onClose: () => void;
     onSave: (event: Event) => void;
 }
 
 const ALL_CATEGORIES = ['Music', 'Tech', 'Art', 'Gaming', 'Education', 'Business', 'Food', 'Sports', 'Health', 'Fashion'];
-const COUNTRIES = ['USA', 'UK', 'Canada', 'Germany', 'France', 'Japan', 'Vietnam', 'Global'];
 
-export default function EventEditorDialog({ event, user, isOpen, onClose, onSave }: EventEditorDialogProps) {
+const countriesData = {
+    vietnam: {
+        name: "Việt Nam",
+        cities: ["Hà Nội", "Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ", "Nha Trang", "Huế"],
+    },
+    thailand: {
+        name: "Thái Lan",
+        cities: ["Bangkok", "Chiang Mai", "Phuket", "Pattaya", "Krabi", "Ayutthaya"],
+    },
+    singapore: {
+        name: "Singapore",
+        cities: ["Singapore"],
+    },
+    malaysia: {
+        name: "Malaysia",
+        cities: ["Kuala Lumpur", "Penang", "Johor Bahru", "Malacca", "Ipoh"],
+    },
+    indonesia: {
+        name: "Indonesia",
+        cities: ["Jakarta", "Bali", "Bandung", "Surabaya", "Yogyakarta", "Medan"],
+    },
+    philippines: {
+        name: "Philippines",
+        cities: ["Manila", "Cebu", "Davao", "Quezon City", "Makati", "Boracay"],
+    },
+}
+
+const CURRENCIES = ['USD', 'VND', 'EUR', 'JPY', 'GBP'];
+
+export default function EventEditorDialog({ event, isOpen, onClose, onSave }: EventEditorDialogProps) {
+
+    const { user } = useContext(AuthContext)
+
     const [formData, setFormData] = useState<Partial<Event>>({
         title: '',
         category: 'Music',
@@ -34,7 +70,9 @@ export default function EventEditorDialog({ event, user, isOpen, onClose, onSave
         coHosts: [],
         currentParticipants: 0,
         isLiked: false,
-        isOwner: true
+        isOwner: true,
+        showParticipants: true,
+        showReviews: true 
     });
 
     const [mediaPreview, setMediaPreview] = useState<string | null>(null);
@@ -44,10 +82,24 @@ export default function EventEditorDialog({ event, user, isOpen, onClose, onSave
     const fileInputRef = useRef<HTMLInputElement>(null);
     const organizerRef = useRef<HTMLDivElement>(null);
     const coHostRef = useRef<HTMLDivElement>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    const [selectedCountry, setSelectedCountry] = useState<string>("");
+    const [selectedCity, setSelectedCity] = useState<string>("");
+    const [selectedCurrency, setSelectedCurrency] = useState<string>("");
+    const [selectedCategory, setSelectedCategory] = useState<string>("");
+    const [isFree, setIsFree] = useState<boolean>(false);
+    const [price, setPrice] = useState<string>("");
 
     useEffect(() => {
         if (isOpen) {
+            setSelectedCity("")
+            setSelectedCountry("")
+            setIsFree(false)
+            setSelectedCurrency("")
+            setPrice("")
             if (event) {
+                // event = await eventApi.get(event.uuid);
                 setFormData({ ...event });
                 setMediaPreview(event.imageUrl);
             } else {
@@ -111,6 +163,13 @@ export default function EventEditorDialog({ event, user, isOpen, onClose, onSave
         setFormData(prev => ({ ...prev, imageUrl: url, imageType: fileType }));
     };
 
+    const handleSettingsChange = (setting: string, value: boolean) => {
+        setFormData(prev => ({
+            ...prev,
+            [setting]: value
+        }));
+    };
+
     const handleOrganizerSelect = (type: 'user' | 'page', id?: string) => {
         if (type === 'user') {
             setFormData(prev => ({
@@ -134,6 +193,11 @@ export default function EventEditorDialog({ event, user, isOpen, onClose, onSave
         }
         setIsOrganizerDropdownOpen(false);
     };
+
+    const handleCountryChange = (value: string) => {
+        setSelectedCountry(value)
+        setSelectedCity("")
+    }
 
     const addCoHost = (coHost: UserProfile) => {
         if (formData.coHosts?.find(c => c.username === coHost.username)) return;
@@ -160,12 +224,34 @@ export default function EventEditorDialog({ event, user, isOpen, onClose, onSave
         onClose();
     };
 
+    const countryOptions: ComboboxOption[] = Object.entries(countriesData).map(([key, country]) => ({
+        value: key,
+        label: country.name,
+    }));
+
+    const cityOptions: ComboboxOption[] = selectedCountry
+        ? countriesData[selectedCountry as keyof typeof countriesData].cities.map((city) => ({
+            value: city,
+            label: city,
+        }))
+        : [];
+
+    const currencyOptions: ComboboxOption[] = CURRENCIES ? CURRENCIES.map(c => ({
+        value: c,
+        label: c
+    })) : [];
+
+    const categoryOptions: ComboboxOption[] = CATEGORIES ? CATEGORIES.map(c => ({
+        value: c,
+        label: c
+    })) : [];
+
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
             <div className="bg-white dark:bg-[#121212] w-full md:max-w-2xl h-full md:h-[90vh] md:rounded-3xl shadow-2xl relative flex flex-col overflow-hidden">
 
                 {/* Header */}
-                <div className="absolute top-0 left-0 right-0 z-30 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/50 to-transparent">
+                <div className="top-0 left-0 right-0 z-30 flex items-center justify-between px-6 py-4 bg-white/80 dark:bg-[#121212]/80 backdrop-blur-md border-b border-gray-100 dark:border-white/5">
                     <span className="text-white font-bold px-4">{event ? 'Edit Event' : 'Create Event'}</span>
                     <button onClick={onClose} className="p-2 rounded-full bg-black/20 hover:bg-black/40 text-white backdrop-blur-md">
                         <X size={20} />
@@ -183,8 +269,8 @@ export default function EventEditorDialog({ event, user, isOpen, onClose, onSave
                         ) : (
                             <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
                                 <Upload size={48} className="mb-2" />
-                                <span>Click to upload Main Image/Video</span>
-                                <span className="text-xs opacity-70">Max 10MB, Video &lt; 10s</span>
+                                <span>Click to upload Main Image/Gif</span>
+                                <span className="text-xs opacity-70">Max 10MB &lt; 10s</span>
                             </div>
                         )}
 
@@ -196,7 +282,7 @@ export default function EventEditorDialog({ event, user, isOpen, onClose, onSave
                             type="file"
                             ref={fileInputRef}
                             className="hidden"
-                            accept="image/*,video/*"
+                            accept="image/*,gif/*"
                             onChange={handleFileChange}
                         />
                     </div>
@@ -213,72 +299,71 @@ export default function EventEditorDialog({ event, user, isOpen, onClose, onSave
                             />
                         </div>
 
-                        <div className="flex flex-col sm:flex-row gap-6 border-b border-gray-100 dark:border-white/5 pb-6">
-                            <div className="flex items-start gap-4 flex-1">
-                                <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-2xl text-gray-900 dark:text-white shadow-sm border border-gray-100 dark:border-white/5">
-                                    <Calendar size={24} />
+                        {/* Date & Time */}
+                        <div className="space-y-4 border-b border-gray-100 dark:border-white/5 pb-6">
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <Calendar size={18} /> Date & Time
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <Calendar24 dateLabel='Start date' timeLabel='Start time' />
                                 </div>
-                                <div className="w-full">
-                                    <input
-                                        type="text"
-                                        name="dateStr"
-                                        value={formData.startTime}
-                                        onChange={handleInputChange}
-                                        placeholder="Date (e.g. July 23)"
-                                        className="w-full font-bold text-gray-900 dark:text-white text-lg bg-transparent outline-none mb-1 border-b border-transparent focus:border-brand-purple"
-                                    />
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="time"
-                                            name="startTime"
-                                            value={formData.startTime}
-                                            onChange={handleInputChange}
-                                            className="bg-transparent text-sm text-gray-500 dark:text-gray-400 outline-none"
-                                        />
-                                        <span>-</span>
-                                        <input
-                                            type="time"
-                                            name="endTime"
-                                            value={formData.endTime}
-                                            onChange={handleInputChange}
-                                            className="bg-transparent text-sm text-gray-500 dark:text-gray-400 outline-none"
-                                        />
-                                    </div>
-                                </div>
-                            </div>
+                                <div className="space-y-2">
+                                    <Calendar24 dateLabel='End date' timeLabel='End time' />
 
-                            <div className="flex items-start gap-4 flex-1">
-                                <div className="p-3 bg-gray-50 dark:bg-white/5 rounded-2xl text-gray-900 dark:text-white shadow-sm border border-gray-100 dark:border-white/5">
-                                    <MapPin size={24} />
-                                </div>
-                                <div className="w-full space-y-2">
-                                    <select
-                                        name="country"
-                                        value={formData.countryCode}
-                                        onChange={handleInputChange}
-                                        className="w-full text-sm font-medium text-gray-500 dark:text-gray-400 bg-transparent outline-none cursor-pointer"
-                                    >
-                                        {COUNTRIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                    </select>
-                                    <input
-                                        type="text"
-                                        name="location"
-                                        value={formData.location}
-                                        onChange={handleInputChange}
-                                        placeholder="Specific Location"
-                                        className="w-full font-bold text-gray-900 dark:text-white text-lg bg-transparent outline-none border-b border-transparent focus:border-brand-purple"
-                                    />
                                 </div>
                             </div>
                         </div>
 
+                        {/* Location */}
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <MapPin size={18} /> Location
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">Country</label>
+                                    <Combobox
+                                        options={countryOptions}
+                                        value={selectedCountry}
+                                        onValueChange={handleCountryChange}
+                                        placeholder='Choose the country'
+                                        searchPlaceholder='Find country'
+                                        emptyText='Cannot find the country'
+                                    />
+                                </div>
+                                <div className="space-y-2 ">
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">City</label>
+                                    <Combobox
+                                        options={cityOptions}
+                                        value={selectedCity}
+                                        onValueChange={setSelectedCity}
+                                        placeholder={selectedCountry ? "Choose city" : "Please choose country first"}
+                                        searchPlaceholder="Find city"
+                                        emptyText="Cannot find city"
+                                        disabled={!selectedCountry}
+                                    />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">Detailed Address</label>
+                                <input
+                                    type="text"
+                                    name="address"
+                                    value={formData.location}
+                                    onChange={handleInputChange}
+                                    placeholder="e.g. 123 Main St, District 1"
+                                    className="w-full bg-white dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2.5 text-sm text-gray-900 dark:text-white outline-none focus:ring-2 focus:ring-brand-purple/20 focus:border-brand-purple transition-all"
+                                />
+                            </div>
+                        </div>
                         <div>
                             <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider mb-4">Hosts & Co-Hosts</h3>
                             <div className="flex flex-wrap gap-4 items-center">
                                 <div className="relative" ref={organizerRef}>
                                     <button
                                         onClick={() => setIsOrganizerDropdownOpen(!isOrganizerDropdownOpen)}
-                                        className="flex items-center gap-3 p-2 pr-4 rounded-full bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 transition-colors"
+                                        className="flex items-center gap-3 p-2 pr-5 rounded-full bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-white hover:bg-blue-100 transition-colors"
                                     >
                                         {formData.organizerAvatar && formData.organizerAvatar.length > 2 ? (
                                             <img src={formData.organizerAvatar} alt="Organizer" className="w-10 h-10 rounded-full object-cover" />
@@ -297,22 +382,23 @@ export default function EventEditorDialog({ event, user, isOpen, onClose, onSave
                                         <div className="absolute top-full left-0 mt-2 w-56 bg-white dark:bg-[#1a1a1a] rounded-xl shadow-xl border border-gray-100 dark:border-white/10 z-50 overflow-hidden">
                                             <div className="p-2 text-xs text-gray-400 uppercase font-semibold">Post As</div>
                                             <button onClick={() => handleOrganizerSelect('user')} className="w-full flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-white/5 text-left">
-                                                <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center text-xs font-bold">{user.avatarUrl && user.avatarUrl.length > 2 ? user.avatarUrl.substring(0, 2) : (user.name ? user.name.substring(0, 2) : 'GU')}</div>
+                                                <img src={formData.organizerAvatar} alt="Organizer" className="w-10 h-10 rounded-full object-cover" />
                                                 <span className="text-sm text-gray-900 dark:text-white">{user.name}</span>
                                             </button>
-                                            <div className="p-2 text-xs text-gray-400 uppercase font-semibold border-t border-gray-100 dark:border-white/5 mt-1">My Pages</div>
+                                            {/* <div className="p-2 text-xs text-gray-400 uppercase font-semibold border-t border-gray-100 dark:border-white/5 mt-1">My Pages</div>
                                             {MOCK_PAGES.map(page => (
                                                 <button key={page.id} onClick={() => handleOrganizerSelect('page', page.id)} className="w-full flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-white/5 text-left">
                                                     <img src={page.avatarUrl} className="w-8 h-8 rounded-full" />
                                                     <span className="text-sm text-gray-900 dark:text-white">{page.name}</span>
                                                 </button>
-                                            ))}
+                                            ))} */}
                                         </div>
                                     )}
+
                                 </div>
 
                                 {formData.coHosts?.map(coHost => (
-                                    <div key={coHost.username || coHost.uuid} className="flex items-center gap-3 p-2 pr-2 rounded-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 relative group">
+                                    <div key={coHost.username || coHost.uuid} className="flex items-center gap-3 p-2 pr-5 rounded-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 relative group">
                                         {coHost.avatarUrl && coHost.avatarUrl.length > 2 ? (
                                             <img src={coHost.avatarUrl} className="w-10 h-10 rounded-full bg-gray-300" />
                                         ) : (
@@ -379,39 +465,120 @@ export default function EventEditorDialog({ event, user, isOpen, onClose, onSave
                             </div>
                         </div>
 
-                        <div>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">About Event</h3>
+                        {/* About */}
+                        <div className="space-y-2">
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white mb-2">About Event</h3>
                             <textarea
+                                ref={textareaRef}
                                 name="description"
                                 value={formData.description}
-                                onChange={handleInputChange}
-                                placeholder="Describe your event..."
-                                className="w-full h-40 bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-200 dark:border-white/10 outline-none focus:border-brand-purple text-gray-900 dark:text-white resize-none"
+                                onChange={(e) => {
+                                    handleInputChange(e);
+                                    if (textareaRef.current) {
+                                        textareaRef.current.style.height = 'auto';
+                                        textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+                                    }
+                                }}
+                                placeholder="Tell people what makes your event special..."
+                                rows={3}
+                                className="w-full min-h-[100px] bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-gray-200 dark:border-white/10 outline-none focus:border-brand-purple text-gray-900 dark:text-white resize-none overflow-hidden leading-relaxed transition-all"
                             />
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        {/* Category & Price */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex">
                             <div>
-                                <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Category</label>
-                                <select
-                                    name="category"
-                                    value={formData.category}
-                                    onChange={handleInputChange}
-                                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 outline-none dark:text-white"
-                                >
-                                    {ALL_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                                </select>
+                                <label className="flex text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">Category</label>
+                                <Combobox
+                                    options={categoryOptions}
+                                    value={selectedCategory}
+                                    onValueChange={setSelectedCategory}
+                                    placeholder='Choose category'
+                                    emptyText='Cannot find category'
+                                    searchPlaceholder='Find category'
+                                />
                             </div>
                             <div>
-                                <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">Price</label>
-                                <input
-                                    type="text"
-                                    name="price"
-                                    value={formData.price}
-                                    onChange={handleInputChange}
-                                    placeholder="Free or $Amount"
-                                    className="w-full p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 outline-none dark:text-white"
-                                />
+                                <div className='flex items-center justify-between mb-1'>
+                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400">Price</label>
+                                    {/* Free Toggle */}
+                                    <div className="flex items-center gap-3">
+                                        <label htmlFor="isFree" className="text-xs font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none">Free Event</label>
+                                        <div
+                                            onClick={() => setIsFree(!isFree)}
+                                            className={`w-8 h-4 rounded-full relative cursor-pointer transition-colors ${isFree ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                                        >
+                                            <div className={`absolute top-[2] w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-200 ${isFree ? 'left-4' : 'left-1'}`}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className='flex justify-between space-x-3'>
+                                    <Combobox
+                                        options={currencyOptions}
+                                        value={selectedCurrency}
+                                        onValueChange={setSelectedCurrency}
+                                        placeholder='Currency'
+                                        emptyText='Cannot find currency'
+                                        searchPlaceholder='Find currency'
+                                        className='max-w-30'
+                                        disabled={isFree}
+                                    />
+                                    <Input
+                                        placeholder='Enter your price'
+                                        value={price}
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/[^0-9.]/g, "");
+                                            setPrice(value);
+                                        }}
+                                        disabled={!selectedCurrency || isFree}
+                                    />
+                                </div>
+
+                            </div>
+                        </div>
+
+                        {/* Other */}
+                        <div className="space-y-2">
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <Settings size={18} /> Other Settings
+                            </h3>
+
+                            {/* Show Participants */}
+                            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-lg">
+                                        <Users size={16} />
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-medium text-gray-900 dark:text-white">Show Participants Count</div>
+                                        <div className="text-xs text-gray-500">Allow everyone to see how many people are going</div>
+                                    </div>
+                                </div>
+                                <div
+                                    onClick={() => handleSettingsChange('showParticipants', !(formData?.showParticipants))}
+                                    className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${formData?.showParticipants ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                                >
+                                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-200 ${formData?.showParticipants ? 'left-6' : 'left-1'}`}></div>
+                                </div>
+                            </div>
+
+                            {/* Show Reviews */}
+                            <div className="flex items-center justify-between p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 rounded-lg">
+                                        <Star size={16} />
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-medium text-gray-900 dark:text-white">Show Reviews</div>
+                                        <div className="text-xs text-gray-500">Enable reviews and ratings for this event</div>
+                                    </div>
+                                </div>
+                                <div
+                                    onClick={() => handleSettingsChange('showReviews', !(formData?.showReviews))}
+                                    className={`w-10 h-5 rounded-full relative cursor-pointer transition-colors ${formData?.showReviews ? 'bg-blue-500' : 'bg-gray-300 dark:bg-gray-600'}`}
+                                >
+                                    <div className={`absolute top-1 w-3 h-3 rounded-full bg-white shadow-sm transition-all duration-200 ${formData?.showReviews ? 'left-6' : 'left-1'}`}></div>
+                                </div>
                             </div>
                         </div>
                     </div>

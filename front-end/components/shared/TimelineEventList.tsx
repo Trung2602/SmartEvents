@@ -146,7 +146,7 @@ export default function TimelineEventList({ events, onSelect, onToggleInterest }
                       {/* Top Right: Interest Button */}
                       <button
                         onClick={(e) => { e.stopPropagation(); onToggleInterest(event.uuid); }}
-                        className={`absolute top-6 right-6 p-2 rounded-full transition-all z-20 ${isLiked ? 'bg-red-50 text-red-500 shadow-sm' : 'bg-transparent text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-red-500'}`}
+                        className={`cursor-pointer absolute top-6 right-6 p-2 rounded-full transition-all z-20 ${isLiked ? 'bg-red-50 text-red-500 shadow-sm' : 'bg-transparent text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-red-500'}`}
                       >
                         <Heart size={16} fill={isLiked ? "currentColor" : "none"} />
                       </button>

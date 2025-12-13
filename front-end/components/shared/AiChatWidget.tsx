@@ -93,7 +93,7 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) 
       {/* Floating Action Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-24 right-6 md:bottom-6 md:right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 ${
+        className={`fixed bottom-24 right-6 lg:bottom-6 md:right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 ${
           isOpen 
           ? 'bg-gray-900 text-white dark:bg-white dark:text-black' 
           : 'bg-gradient-to-tr from-brand-purple to-blue-500 text-white'
@@ -106,8 +106,8 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) 
       <div 
         className={`fixed z-40 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-2xl overflow-hidden transition-all duration-300 ease-out flex flex-col
           ${isOpen 
-            ? 'bottom-24 right-4 md:bottom-24 md:right-6 w-[90vw] md:w-[380px] h-[600px] rounded-3xl opacity-100 scale-100 translate-y-0' 
-            : 'bottom-10 right-6 w-0 h-0 opacity-0 scale-90 translate-y-10 rounded-full'
+            ? 'flex bottom-44 right-4 lg:bottom-24 md:right-6 w-[90vw] md:w-[380px] h-[600px] rounded-xl opacity-100 scale-100 translate-y-0' 
+            : 'bottom-10 right-6 w-0 h-0 opacity-0 scale-90 translate-y-10 rounded-xl'
           }`}
       >
         {/* Header */}

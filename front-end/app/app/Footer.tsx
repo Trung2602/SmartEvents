@@ -1,13 +1,10 @@
 'use client';
 
+import { useTheme } from "@/context/ThemeContext";
 import { Theme } from "@/lib/types";
 
-interface FooterProps {
-    theme: Theme;
-    setTheme: (theme: Theme) => void;
-}
-
-export default function Footer({ theme, setTheme }: FooterProps) {
+export default function Footer() {
+    const { theme, setTheme} = useTheme();
     return (
         <footer className="border-t border-gray-200 dark:border-white/5 py-6 mt-auto transition-colors duration-300">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 px-6">
