@@ -2,7 +2,7 @@
 
 import { Header } from '@/components/common/LandingHeader';
 import { Footer } from '@/components/common/Footer';
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { User, Theme, Event } from '@/lib/types';
 import { Modal } from '@/components/common/Modal';
 import { FEATURED_EVENTS, REVIEWS } from '@/lib/constants';
@@ -12,11 +12,13 @@ import Login from '@/components/common/Login';
 import Register from '@/components/common/Register';
 import { NextResponse } from 'next/server';
 import EventCard from '@/components/shared/EventCard';
+import { AuthContext } from '@/context/AuthContext';
 
 export default function Home() {
 
   // --- State ---
-  const [user, setUser] = useState<User | null>(null);
+  const { user } = useContext(AuthContext);
+
   const [theme, setTheme] = useState<Theme>('dark');
   const [events, setEvents] = useState<Event[]>(FEATURED_EVENTS);
 
@@ -24,7 +26,6 @@ export default function Home() {
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
 
-  const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [reviewText, setReviewText] = useState('');
   const [reviewRating, setReviewRating] = useState(5);
@@ -69,13 +70,13 @@ export default function Home() {
     alert('Review submitted!');
   };
 
-  const toggleInterest = (id: string) => {
-    if (!user) {
-      setAuthMode('login');
-      return;
-    }
-    setEvents(prev => prev.map(e => e.id === id ? { ...e, isInterested: !e.isInterested } : e));
-  };
+  // const toggleInterest = (id: string) => {
+  //   if (!user) {
+  //     setAuthMode('login');
+  //     return;
+  //   }
+  //   setEvents(prev => prev.map(e => e.id === id ? { ...e, isInterested: !e.isInterested } : e));
+  // };
 
 
   return (
@@ -103,7 +104,7 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {events.slice(0, 3).map(event => (
               <EventCard
-                key={event.id}
+                key={event.uuid}
                 event={event}
                 onClick={() => setSelectedEvent(event)}
               />
@@ -114,7 +115,7 @@ export default function Home() {
         <DownloadSection />
       </main>
 
-      <Footer setTheme={handleSetTheme} theme={theme} />
+      <Footer />
 
       <Modal isOpen={showSignInModal} onClose={() => setShowSignInModal(false)}>
         <Login onSuccess={() => setShowSignInModal(false)} />

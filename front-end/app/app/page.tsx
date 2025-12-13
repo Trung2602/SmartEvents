@@ -3,6 +3,9 @@
 import { useContext, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Header from '@/components/common/Header';
+import { Modal } from '@/components/common/Modal';
+import Login from '@/components/common/Login';
+import Register from '@/components/common/Register';
 import Sidebar from '@/app/app/Sidebar';
 import { AppPage, DateFilter, Event, Theme, UserProfile, ViewMode } from '@/lib/types';
 import Footer from './Footer';
@@ -24,7 +27,6 @@ export default function Home() {
 
   // -- Filters State --
   const [currentTitle, setCurrentTitle] = useState('Discover');
-  const [theme, setTheme] = useState<Theme>('dark');
 
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [events, setEvents] = useState<Event[]>([]);
@@ -39,12 +41,17 @@ export default function Home() {
   const [currentPage, setCurrentPage] = useState<AppPage>('Discover');
 
   // --- Handlers ---
-  const handleSetTheme = (theme: Theme) => {
-    setTheme(theme);
-  }
-
   const openCreateDialog = () => {
+    setEditorEvent(null);
+    setIsEditorOpen(true);
   };
+  // Refs for clicking outside dropdowns
+  const moreCatRef = useRef<HTMLDivElement>(null);
+  const countryRef = useRef<HTMLDivElement>(null);
+  const searchParams = useSearchParams();
+  // auth modals
+  const [showSignInModal, setShowSignInModal] = useState(false);
+  const [showSignUpModal, setShowSignUpModal] = useState(false);
 
   const handleRegisterEvent = (event: Event) => {
     const updatedEvent = { ...event, isRegistered: true };
@@ -88,7 +95,7 @@ export default function Home() {
   // CRUD OPERATIONS
   const handleCreateEvent = (newEvent: Event) => {
     setEvents(prev => [newEvent, ...prev]);
-    // setIsEditorOpen(false);
+    setIsEditorOpen(false);
   };
 
   const handleUpdateEvent = (updatedEvent: Event) => {
@@ -106,33 +113,6 @@ export default function Home() {
       setSelectedEvent(null);
     }
   };
-
-  // Logic to swap categories if a user selects one from "More"
-  useEffect(() => {
-    const root = document.documentElement;
-    const applyTheme = (t: 'light' | 'dark') => {
-      if (t === 'dark') {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
-    };
-
-    if (theme === 'system') {
-      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      applyTheme(systemDark ? 'dark' : 'light');
-
-      const listener = (e: MediaQueryListEvent) => {
-        applyTheme(e.matches ? 'dark' : 'light');
-      };
-
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      mediaQuery.addEventListener('change', listener);
-      return () => mediaQuery.removeEventListener('change', listener);
-    } else {
-      applyTheme(theme);
-    }
-  }, [theme]);
 
   useEffect(() => {
     // set current page from query param (e.g. /app?pane=profile)
@@ -192,7 +172,7 @@ export default function Home() {
             <Activity />
           ) : <></>}
         </main>
-        <Footer theme={theme} setTheme={handleSetTheme} />
+        <Footer />
       </div>
       <Modal isOpen={showSignInModal} onClose={() => setShowSignInModal(false)}>
         <Login onSuccess={() => setShowSignInModal(false)} />
@@ -204,8 +184,6 @@ export default function Home() {
       <SettingsDialog
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
-        currentTheme={theme}
-        setTheme={setTheme}
       />
       <AiChatWidget allEvents={events} onEventClick={setSelectedEvent} />
 
@@ -227,7 +205,6 @@ export default function Home() {
         isOpen={isEditorOpen}
         onClose={() => setIsEditorOpen(false)}
         event={editorEvent}
-        user={user}
         onSave={editorEvent ? handleUpdateEvent : handleCreateEvent}
       />
     </div>

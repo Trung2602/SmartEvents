@@ -15,6 +15,7 @@ export interface Event {
   organizerType?: 'user' | 'page';
   coHosts?: UserProfile[]; 
   price?: string;
+  currency?: string;
   description?: string;
   isSoldOut?: boolean;
   isEnded?: boolean;
@@ -26,6 +27,9 @@ export interface Event {
   hasCheckedIn?:boolean;
   status?: 'upcoming' | 'full' | 'ended';
   isInterested?: boolean;
+
+  showParticipants?: true,
+  showReviews?: true 
 }
 
 export interface UserProfile {
@@ -136,4 +140,48 @@ export interface ChatMessage {
   text: string;
   relatedEventIds?: string[];
   timestamp: Date;
+}
+
+export interface ReviewReply {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  comment: string;
+  timestamp: string;
+  userType?: 'organizer' | 'user';
+}
+
+export interface Review {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatar: string;
+  rating: number; // 1-5
+  comment: string;
+  timestamp: string;
+  replies: ReviewReply[];
+export interface UserProfile {
+  // basic auth fields
+  id?: string | number;
+  name?: string;
+  email?: string;
+  username?: string;
+  avatarUrl?: string;
+  bio?: string;
+
+  // profile fields (backend POJO)
+  accountUuid?: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  dateOfBirth?: string; // ISO date string
+  city?: string;
+  countryCode?: string;
+  interests?: any; // jsonb
+  socialLinks?: any; // jsonb
+  preferences?: any; // jsonb
+  privacySettings?: any; // jsonb
+  createdAt?: string;
+  updatedAt?: string;
 }

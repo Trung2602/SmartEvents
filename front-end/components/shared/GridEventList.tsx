@@ -34,7 +34,7 @@ export default function GridEventList({ events, onSelect, onToggleInterest }: Gr
               <EventCard 
                 key={event.uuid} 
                 event={event} 
-                variant="dashboard" 
+                // variant="dashboard" 
                 onClick={() => onSelect(event)} 
                 onToggleInterest={(e) => { e?.stopPropagation(); onToggleInterest(event.uuid); }} 
               />

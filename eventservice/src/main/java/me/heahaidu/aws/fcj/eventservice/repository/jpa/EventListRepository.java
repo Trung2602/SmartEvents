@@ -28,7 +28,7 @@ public interface EventListRepository extends JpaRepository<Event, UUID> {
                 ec.city                     AS city,
                 ec.country_code             AS countryCode,
                 ec.category                 AS category,
-                ec.image_urls AS imageUrls
+                ec.image_urls               AS imageUrls
             FROM event e
             JOIN event_content ec ON ec.uuid = e.current_version_uuid
             WHERE e.deleted_at IS NULL

@@ -29,14 +29,21 @@ public enum ErrorCode {
 
     // System errors
     INTERNAL_ERROR("SYS_001", "Internal server error"),
-    
+
     // Feedback errors
     FEEDBACK_NOT_CHECKED_IN("FEEDBACK_001", "User must check-in to submit feedback"),
     FEEDBACK_ALREADY_SUBMITTED("FEEDBACK_002", "User has already submitted feedback for this event"),
     FEEDBACK_NOT_FOUND("FEEDBACK_003", "Feedback not found"),
     FEEDBACK_EVENT_NOT_ENDED("FEEDBACK_004", "Can only submit feedback after event has ended"),
     FEEDBACK_OWN_FEEDBACK("FEEDBACK_005", "Cannot mark own feedback as helpful"),
-    FEEDBACK_ALREADY_MARKED_HELPFUL("FEEDBACK_006", "Already marked this feedback as helpful");
+    FEEDBACK_ALREADY_MARKED_HELPFUL("FEEDBACK_006", "Already marked this feedback as helpful"),
+
+    // Data error
+    DATA_INTEGRITY_VIOLATION("DATA_INTEGRITY_VIOLATION","Invalid data. Please contact support if this persists"),
+
+    // Interest error
+    ALREADY_INTEREST("ALREADY_INTEREST", "You has already interested in this event"),
+    NOT_INTEREST_YET("NOT_INTEREST_YET", "You are not interested in this event");
 
     private final String code;
     private final String message;
