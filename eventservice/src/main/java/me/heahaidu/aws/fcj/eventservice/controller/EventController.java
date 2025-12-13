@@ -21,6 +21,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:3000")
 public class EventController {
 
     private final EventService eventService;
@@ -76,6 +77,7 @@ public class EventController {
 
     @GetMapping("/event/interest/{eventId}")
     public ResponseEntity<?> interestEvent(@PathVariable UUID eventId) {
+
         return ResponseEntity.status(200).build();
     }
 

@@ -3,6 +3,7 @@ import { Outfit } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
 import { AuthProvider } from '@/context/AuthContext';
+import { ThemeProvider } from '@/context/ThemeContext';
 
 const outfit = Outfit({ subsets: ["latin"] });
 
@@ -38,8 +39,10 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${outfit.className} font-sans antialiased`}>
         <AuthProvider>
+          <ThemeProvider>
           {children}
           <Analytics />
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

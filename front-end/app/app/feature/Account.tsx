@@ -1,22 +1,22 @@
 "use client";
 
-import { INITIAL_USER } from "@/lib/constants";
-import { UserProfile } from "@/lib/types";
 import { LogOut, Settings, User as UserIcon } from "lucide-react";
 import { useEffect, useRef, useState, useContext } from "react";
 import { AuthContext } from '@/context/AuthContext';
 import { useRouter, usePathname } from 'next/navigation';
-import { toast } from 'sonner';
+import SettingsDialog from "@/components/dialogs/SettingsDialog";
 
 export default function Account({ onNavigate }: { onNavigate?: (label: string) => void }) {
 
     const { user, signOut } = useContext(AuthContext);
-    const userRef = useRef<HTMLDivElement>(null);
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const router = useRouter();
     const pathname = usePathname();
+    const userRef = useRef<HTMLDivElement>(null);
+    const [isSettingsOpen, setIsSettingsOpen] = useState(false); 
 
     useEffect(() => {
+        removeEventListener
         const handleClickOutside = (event: MouseEvent) => {
             if (userRef.current && !userRef.current.contains(event.target as Node)) {
                 setIsUserMenuOpen(false);
@@ -34,8 +34,7 @@ export default function Account({ onNavigate }: { onNavigate?: (label: string) =
     const handleSignOut = () => {
         signOut();
         setIsUserMenuOpen(false);
-        toast.success('Đã đăng xuất');
-        router.push('/');
+        router.refresh()
     };
 
     const initials = (() => {
@@ -81,14 +80,14 @@ export default function Account({ onNavigate }: { onNavigate?: (label: string) =
                                         }
                                 }
                             }}
-                            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors"
+                            className="cursor-pointer w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors"
                         >
                             <UserIcon size={16} />
                             Profile
                         </button>
                         <button
-                            onClick={() => { setIsUserMenuOpen(false); router.push('/app/settings'); }}
-                            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors"
+                            onClick={() => { setIsUserMenuOpen(false); setIsSettingsOpen(true); }}
+                            className="cursor-pointer w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors"
                         >
                             <Settings size={16} />
                             Settings
@@ -99,7 +98,7 @@ export default function Account({ onNavigate }: { onNavigate?: (label: string) =
                     <div className="p-2 border-t border-gray-100 dark:border-white/5">
                         <button
                             onClick={handleSignOut}
-                            className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
+                            className="cursor-pointer w-full flex items-center gap-3 px-3 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-lg transition-colors"
                         >
                             <LogOut size={16} />
                             Sign Out
@@ -107,6 +106,7 @@ export default function Account({ onNavigate }: { onNavigate?: (label: string) =
                     </div>
                 </div>
             )}
+            <SettingsDialog isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)}/>
         </div>
     )
 }

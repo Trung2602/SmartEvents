@@ -32,7 +32,7 @@ public class EventFeedbackException extends EventException {
         return new EventFeedbackException(ErrorCode.FEEDBACK_OWN_FEEDBACK);
     }
 
-    public static EventFeedbackException alreadyMarkedHelpful() {
-        return new EventFeedbackException(ErrorCode.FEEDBACK_ALREADY_MARKED_HELPFUL);
-    }
+//    public static EventFeedbackException alreadyMarkedHelpful() {
+//        return new EventFeedbackException(ErrorCode.FEEDBACK_ALREADY_MARKED_HELPFUL);
+//    }
 }

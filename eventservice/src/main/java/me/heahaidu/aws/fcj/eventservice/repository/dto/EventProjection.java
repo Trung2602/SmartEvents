@@ -1,18 +1,21 @@
 package me.heahaidu.aws.fcj.eventservice.repository.dto;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public interface EventProjection {
 
-    UUID getEvent_uuid();
-    UUID getPage_uuid();
-    Integer getCurrent_participants();
-    Integer getMax_participants();
+    UUID getEventUuid();
+    UUID getPageUuid();
+    Integer getCurrentParticipants();
+    Integer getMaxParticipants();
     String getTitle();
-    Instant getStart_time();
-    Instant getEnd_time();
+    Instant getStartTime();
+    Instant getEndTime();
     String getLocation();
     String getCity();
     String getCategory();
+    String[] getImageUrls();
+    String getCountryCode();
 }

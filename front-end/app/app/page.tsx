@@ -1,46 +1,50 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Header from '@/components/common/Header';
 import { Modal } from '@/components/common/Modal';
 import Login from '@/components/common/Login';
 import Register from '@/components/common/Register';
 import Sidebar from '@/app/app/Sidebar';
-import LoginView from '@/components/login-view';
-import EventTimeline from '@/components/common/EventCard';
-import { DateFilter, Theme, ViewMode } from '@/lib/types';
+import { AppPage, DateFilter, Event, Theme, UserProfile, ViewMode } from '@/lib/types';
 import Footer from './Footer';
-import { Check, ChevronDown, Globe, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import AutoBanner from '@/components/common/AutoBanner';
-import { FEATURED_EVENTS } from '@/lib/constants';
-import SearchTool from './feature/SearchTool';
-import DateControls from './feature/DateControls';
-import ViewToggle from './feature/View';
-import ChannelPage from './pages/Pages';
-import ProfilePane from './pages/Profile';
-
-// Data constants
-const ALL_CATEGORIES = ['All', 'Music', 'Tech', 'Art', 'Gaming', 'Education', 'Business', 'Food', 'Sports', 'Health', 'Fashion'];
-const AVAILABLE_COUNTRIES = ['USA', 'UK', 'Canada', 'Germany', 'France', 'Japan', 'Global'];
+import { Menu } from 'lucide-react';
+import { Modal } from '@/components/common/Modal';
+import Login from '@/components/common/Login';
+import Register from '@/components/common/Register';
+import { eventApi } from '@/lib/api/event';
+import Discover from './pages/Discover';
+import Activity from './pages/Activity';
+import SettingsDialog from '@/components/dialogs/SettingsDialog';
+import AiChatWidget from '@/components/shared/AiChatWidget';
+import EventDetailDialog from '@/components/dialogs/EventDetailDialog';
+import EventEditorDialog from '@/components/dialogs/EventEditorDialog';
+import { AuthContext } from '@/context/AuthContext';
 
 export default function Home() {
+  const { user } = useContext(AuthContext);
+
   // -- Filters State --
-  const [visibleCategories, setVisibleCategories] = useState(ALL_CATEGORIES.slice(0, 6));
   const [currentTitle, setCurrentTitle] = useState('Discover');
-  const [theme, setTheme] = useState<Theme>('dark');
-  const [selectedCategory, setSelectedCategory] = useState('All');
-  const [isMoreCatOpen, setIsMoreCatOpen] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState('Global');
-  const [isCountryOpen, setIsCountryOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState<string>();
-  const [dateFilter, setDateFilter] = useState<DateFilter>({ start: '', end: '', isAuto: true });
-  const [viewMode, setViewMode] = useState<ViewMode>('list');
+
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [showSignInModal, setShowSignInModal] = useState(false);
+  const [showSignUpModal, setShowSignUpModal] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editorEvent, setEditorEvent] = useState<Event | null>(null);
 
   //conditional rendering page 
-  const [currentPage, setCurrentPage] = useState<'home' | 'channel' | 'profile' | 'bookmarks'>('home');
+  const [currentPage, setCurrentPage] = useState<AppPage>('Discover');
 
+  // --- Handlers ---
+  const openCreateDialog = () => {
+    setEditorEvent(null);
+    setIsEditorOpen(true);
+  };
   // Refs for clicking outside dropdowns
   const moreCatRef = useRef<HTMLDivElement>(null);
   const countryRef = useRef<HTMLDivElement>(null);
@@ -49,235 +53,160 @@ export default function Home() {
   const [showSignInModal, setShowSignInModal] = useState(false);
   const [showSignUpModal, setShowSignUpModal] = useState(false);
 
-  // Calculate hidden categories for the "More" dropdown
-  const hiddenCategories = ALL_CATEGORIES.filter(c => !visibleCategories.includes(c));
+  const handleRegisterEvent = (event: Event) => {
+    const updatedEvent = { ...event, isRegistered: true };
+    setEvents(prev => prev.map(e => e.uuid === event.uuid ? updatedEvent : e));
+    setSelectedEvent(updatedEvent);
 
-  // --- Handlers ---
-  const handleSetTheme = (theme: Theme) => {
-    setTheme(theme);
-  }
+    // setNotifications(prev => [{
+    //     id: Math.random().toString(),
+    //     title: 'Registration Successful',
+    //     message: `You are now registered for ${event.title}`,
+    //     time: 'Just now',
+    //     isRead: false,
+    //     type: 'success'
+    // }, ...prev]);
+  };
 
-  // Logic to swap categories if a user selects one from "More"
-  const handleCategorySelect = (cat: string) => {
-    setSelectedCategory(cat);
-
-    // If selected category is NOT in the visible list (and it's not 'All' which is always 0), swap it in
-    if (!visibleCategories.includes(cat)) {
-      // Keep 'All' at index 0 always. 
-      // Swap the last visible item with the new selection to maintain list size
-      const newVisible = [...visibleCategories];
-      newVisible[newVisible.length - 1] = cat;
-      setVisibleCategories(newVisible);
+  const handleUnregisterEvent = (event: Event) => {
+    if (confirm("Are you sure you want to cancel your registration?")) {
+      const updatedEvent = { ...event, isRegistered: false };
+      setEvents(prev => prev.map(e => e.uuid === event.uuid ? updatedEvent : e));
+      setSelectedEvent(updatedEvent);
     }
-    setIsMoreCatOpen(false);
+  };
+
+  const openEditDialog = (event: Event) => {
+    if (event.isEnded) {
+      alert("Cannot edit past events.");
+      return;
+    }
+    setEditorEvent(event);
+    setIsEditorOpen(true);
+  };
+
+  const handleToggleInterest = (id: string) => {
+    setEvents(prev => prev.map(e => e.uuid === id ? { ...e, isLiked: !e.isLiked } : e));
+    if (selectedEvent && selectedEvent.uuid === id) {
+      setSelectedEvent(prev => prev ? { ...prev, isLiked: !prev.isLiked } : null);
+    }
+  };
+
+  // CRUD OPERATIONS
+  const handleCreateEvent = (newEvent: Event) => {
+    setEvents(prev => [newEvent, ...prev]);
+    setIsEditorOpen(false);
+  };
+
+  const handleUpdateEvent = (updatedEvent: Event) => {
+    setEvents(prev => prev.map(e => e.uuid === updatedEvent.uuid ? updatedEvent : e));
+    // setIsEditorOpen(false);
+    // if (selectedEvent && selectedEvent.id === updatedEvent.id) {
+    //     setSelectedEvent(updatedEvent);
+    // }
+  };
+
+
+  const handleDeleteEvent = (id: string) => {
+    if (confirm("Are you sure you want to delete this event?")) {
+      setEvents(prev => prev.filter(e => e.uuid !== id));
+      setSelectedEvent(null);
+    }
   };
 
   useEffect(() => {
-    const root = document.documentElement;
-    const applyTheme = (t: 'light' | 'dark') => {
-      if (t === 'dark') {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
-      }
-    };
-
-    if (theme === 'system') {
-      const systemDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      applyTheme(systemDark ? 'dark' : 'light');
-
-      const listener = (e: MediaQueryListEvent) => {
-        applyTheme(e.matches ? 'dark' : 'light');
-      };
-
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      mediaQuery.addEventListener('change', listener);
-      return () => mediaQuery.removeEventListener('change', listener);
-    } else {
-      applyTheme(theme);
-    }
-  }, [theme]);
-
-  useEffect(() => {
     // set current page from query param (e.g. /app?pane=profile)
-    const pane = searchParams?.get('pane');
-    if (pane === 'profile') setCurrentPage('profile');
-    if (pane === 'bookmarks') setCurrentPage('bookmarks');
+    // const pane = searchParams?.get('pane');
+    // if (pane === 'profile') setCurrentPage('profile');
+    // if (pane === 'bookmarks') setCurrentPage('bookmarks');
+    load()
 
-    const handleClickOutside = (event: MouseEvent) => {
+  }, []);
 
-        if (moreCatRef.current && !moreCatRef.current.contains(event.target as Node)) {
-            setIsMoreCatOpen(false);
-        }
-        if (countryRef.current && !countryRef.current.contains(event.target as Node)) {
-          setIsCountryOpen(false);
-        }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-}, []);
+  // API
+  async function load() {
+    const { items, nextCursor, hasNext } = await eventApi.list();
+    console.log('oke')
+    setEvents(items)
+  }
 
-  const filteredEvents = FEATURED_EVENTS;
+  const filteredEvents = events;
 
   return (
     <div className="flex min-h-screen bg-white min-h-screen bg-white dark:bg-[#050505] transition-all duration-200">
-      {/* Sidebar - Fixed on left */}
-      {/* <Sidebar onNavChange={setCurrentTitle} /> */}
-      {/* compute a label for sidebar active state from currentPage */}
       <Sidebar
-        active={currentPage === 'home' ? 'Discover' : currentPage === 'channel' ? 'Channel' : currentPage === 'profile' ? 'Profile' : currentPage === 'bookmarks' ? 'Bookmarks' : 'Discover'}
+        active={currentPage}
         onNavChange={(label) => {
           setCurrentTitle(label);
-          if (label === 'Channel') setCurrentPage('channel');
-          else if (label === 'Profile') setCurrentPage('profile');
-          else if (label === 'Bookmarks') setCurrentPage('bookmarks');
-          else setCurrentPage('home');
+          setCurrentPage(label);
         }}
+        onCreateEvent={openCreateDialog}
+        isMobileOpen={isMobileMenuOpen} onCloseMobile={() => setIsMobileMenuOpen(false)}
+        onOpenSettings={() => setIsSettingsOpen(true)}
       />
+      <button
+        onClick={() => setIsMobileMenuOpen(true)}
+        className="lg:hidden fixed bottom-6 right-6 z-50 bg-black dark:bg-white text-white dark:text-black p-4 rounded-full shadow-2xl hover:scale-110 transition-transform"
+      >
+        <Menu />
+      </button>
+
       {/* Main content area */}
-      <div className="flex-1 flex flex-col ml-56 min-h-screen dark:!bg-[#0a0a0a]">
+      <div className="flex-1 flex flex-col lg:ml-56 min-h-screen dark:!bg-[#0a0a0a]">
         {/* Header - Fixed on top */}
         <Header title={currentTitle} onNavigate={(label: string) => {
           setCurrentTitle(label);
-          if (label === 'Channel') setCurrentPage('channel');
-          else if (label === 'Profile') setCurrentPage('profile');
-          else if (label === 'Bookmarks') setCurrentPage('bookmarks');
-          else setCurrentPage('home');
-        }} onLogin={() => setShowSignInModal(true)} onRegister={() => setShowSignUpModal(true)} />
+        }}
+          onLogin={() => setShowSignInModal(true)} onRegister={() => setShowSignUpModal(true)}
+        />
 
         {/* Main content */}
         <main className="flex-1 animate-in fade-in duration-300 slide-in-from-bottom-2">
-          {currentPage === 'home' ? (
-          <>
-          <div className="p-6 md:p-10 max-w-7xl mx-auto">
-            {/* Top Filters */}
-            <div className="flex flex-col xl:flex-row gap-6 mb-8 items-start xl:items-center justify-between">
-              {/* Categories */}
-              <div className="flex flex-wrap items-center gap-3">
-                {visibleCategories.map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`cursor-pointer px-3 py-1 rounded-sm text-sm font-normal transition-all ${selectedCategory === cat
-                      ? 'bg-black text-white dark:bg-white dark:text-black border border-gray-200'
-                      : 'bg-white border border-gray-200 text-gray-600 dark:bg-white/5 dark:border-white/10 dark:text-gray-300 '
-                      }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-
-                {/* More Button */}
-                <div className="relative" ref={moreCatRef}>
-                  <button
-                    onClick={() => setIsMoreCatOpen(!isMoreCatOpen)}
-                    className={`cursor-pointer flex items-center gap-1 px-3 py-1 rounded-sm text-sm font-normal transition-all ${isMoreCatOpen || hiddenCategories.includes(selectedCategory)
-                      ? 'bg-black text-white dark:bg-white dark:text-black border border-gray-200'
-                      : 'bg-white border border-gray-200 text-gray-600 dark:bg-white/5 dark:border-white/10 dark:text-gray-300 '
-                      }`}
-                  >
-                    More <ChevronDown size={14} />
-                  </button>
-
-                  {isMoreCatOpen && (
-                    <div className="absolute top-full mt-2 w-48 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-sm shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                      {hiddenCategories.map(cat => (
-                        <button
-                          key={cat}
-                          onClick={() => handleCategorySelect(cat)}
-                          className="cursor-pointer w-full text-left px-4 py-3 text-sm hover:bg-gray-50 dark:hover:bg-white/5 dark:text-gray-200 flex justify-between items-center"
-                        >
-                          {cat}
-                          {selectedCategory === cat && <Check size={14} />}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Country Selector */}
-              <div className="flex items-center gap-3 w-full xl:w-auto relative" ref={countryRef}>
-                <button
-                  onClick={() => setIsCountryOpen(!isCountryOpen)}
-                  className="cursor-pointer flex items-center gap-2 px-3 py-1 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-sm text-sm font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/10 transition-all"
-                >
-                  <Globe size={16} />
-                  <span>{selectedCountry}</span>
-                  <ChevronDown size={14} className="ml-1 text-gray-400" />
-                </button>
-
-                {isCountryOpen && (
-                  <div className="absolute top-full mt-2 w-40 bg-white dark:bg-[#1a1a1a] border border-gray-200 dark:border-white/10 rounded-sm shadow-xl z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-                    {AVAILABLE_COUNTRIES.map(country => (
-                      <button
-                        key={country}
-                        onClick={() => { setSelectedCountry(country); setIsCountryOpen(false); }}
-                        className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 dark:hover:bg-white/5 dark:text-gray-200 flex justify-between items-center"
-                      >
-                        {country}
-                        {selectedCountry === country && <Check size={14} className="text-brand-purple" />}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Featured Banner (only on Discover page and All category) */}
-            <AutoBanner events={FEATURED_EVENTS} />
-
-            {/* Filter (Search, Date, View) */}
-            <div className='flex flex-col justify-between gap-4 xl:flex-row'>
-              <SearchTool onSearch={setSearchTerm} />
-              <div className='flex flex-col gap-3 md:flex-row w-full xl:w-auto justify-between'>
-                <DateControls dateFilter={dateFilter} setDateFilter={setDateFilter} />
-                <ViewToggle setViewMode={setViewMode} viewMode={viewMode} />
-              </div>
-            </div>
-
-            {/* Events List */}
-            {filteredEvents.length === 0 ? (
-              <div className="text-center py-20">
-                <div className="w-16 h-16 bg-gray-100 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Search className="text-gray-400" />
-                </div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">No events found</h3>
-                <p className="text-gray-500">Try adjusting your filters.</p>
-              </div>
-            ) : (
-              <>
-                {viewMode === 'list' ? (
-                  <EventTimeline />
-                ) : (
-                  <div></div>
-                  // <GridEventList
-                  //   events={filteredEvents}
-                  //   onSelect={setSelectedEvent}
-                  //   onToggleInterest={handleToggleInterest}
-                  // />
-                )}
-              </>
-            )}
-          </div>
-          </>
-          ) : currentPage === 'channel' ? (
-            <ChannelPage />
-          ) : currentPage === 'profile' ? (
-            <ProfilePane />
-          ) : (
-            <ChannelPage />
-          )}
+          {currentPage === 'Discover' ? (
+            <Discover showSignInPopup={() => setShowSignInModal(true)} selectedEvent={selectedEvent} onSelectedEvent={setSelectedEvent} />
+          ) : currentPage === 'Channel' ? (
+            <></>
+          ) : currentPage === 'Profile' ? (
+            <></>
+          ) : currentPage === 'Activity' ? (
+            <Activity />
+          ) : <></>}
         </main>
-        <Footer theme={theme} setTheme={handleSetTheme} />
-        <Modal isOpen={showSignInModal} onClose={() => setShowSignInModal(false)}>
-          <Login onSuccess={() => setShowSignInModal(false)} />
-        </Modal>
-
-        <Modal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)}>
-          <Register onSuccess={() => setShowSignUpModal(false)} />
-        </Modal>
+        <Footer />
       </div>
+      <Modal isOpen={showSignInModal} onClose={() => setShowSignInModal(false)}>
+        <Login onSuccess={() => setShowSignInModal(false)} />
+      </Modal>
+
+      <Modal isOpen={showSignUpModal} onClose={() => setShowSignUpModal(false)}>
+        <Register onSuccess={() => setShowSignUpModal(false)} />
+      </Modal>
+      <SettingsDialog
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
+      <AiChatWidget allEvents={events} onEventClick={setSelectedEvent} />
+
+      <EventDetailDialog
+        event={selectedEvent}
+        currentUser={user}
+        onClose={() => setSelectedEvent(null)}
+        onToggleInterest={handleToggleInterest}
+        onEdit={openEditDialog}
+        onDelete={handleDeleteEvent}
+        onRegisterEvent={handleRegisterEvent}
+        onUnregisterEvent={handleUnregisterEvent}
+        onLogin={() => {
+          setSelectedEvent(null);
+          setShowSignInModal(true)
+        }}
+      />
+      <EventEditorDialog
+        isOpen={isEditorOpen}
+        onClose={() => setIsEditorOpen(false)}
+        event={editorEvent}
+        onSave={editorEvent ? handleUpdateEvent : handleCreateEvent}
+      />
     </div>
   );
 }
