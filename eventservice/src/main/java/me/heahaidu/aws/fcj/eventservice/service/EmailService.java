@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.heahaidu.aws.fcj.eventservice.repository.dto.EventContentProjection;
 import me.heahaidu.aws.fcj.eventservice.repository.entity.Event;
+import me.heahaidu.aws.fcj.eventservice.repository.entity.EventContent;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -45,14 +46,14 @@ public class EmailService {
 
             helper.setFrom(fromEmail, fromName);
             helper.setTo(request.getUserEmail());
-            helper.setSubject("🎉 Registration Confirmed - " + request.event.getTitle());
+            helper.setSubject("🎉 Registration Confirmed - " + request.eventContent.getTitle());
 
             Context context = new Context();
-            context.setVariable("eventTitle", request.event.getTitle());
-            context.setVariable("eventDate", formatDate(request.event.getStartTime()));
-            context.setVariable("eventTime", formatTime(request.event.getEndTime()));
-            context.setVariable("eventLocation", request.event.getLocation());
-            context.setVariable("eventUrl", frontendBaseUrl + "/events/" + request.event.getEventUuid());
+            context.setVariable("eventTitle", request.eventContent.getTitle());
+            context.setVariable("eventDate", formatDate(request.eventContent.getStartTime()));
+            context.setVariable("eventTime", formatTime(request.eventContent.getEndTime()));
+            context.setVariable("eventLocation", request.eventContent.getLocation());
+            context.setVariable("eventUrl", frontendBaseUrl + "/events/" + request.eventContent.getEventUuid());
             context.setVariable("qrCodeCid", "qrcode");
 
             String htmlContent = templateEngine.process("registration-confirmation", context);
@@ -148,7 +149,7 @@ public class EmailService {
     public static class RegistrationEmailRequest {
         private String userEmail;
         private UUID userUuid;
-        private EventContentProjection event;
+        private EventContent eventContent;
         private byte[] qrImage;
     }
 

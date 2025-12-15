@@ -35,7 +35,7 @@ public class EventInterestServiceImpl implements EventInterestService {
 
         List<EventResponse> items = list.stream().map(r -> EventResponse.builder()
                 .uuid(r.getEventUuid())
-                .pageUuid(r.getPageUuid())
+                .createdBy(r.getCreatedBy())
                 .title(r.getTitle())
                 .startTime(r.getStartTime())
                 .endTime(r.getEndTime())
@@ -46,6 +46,7 @@ public class EventInterestServiceImpl implements EventInterestService {
                 .currentParticipants(r.getCurrentParticipants())
                 .imageUrl(r.getImageUrls()[0])
                 .countryCode(r.getCountryCode())
+                .isLike(true)
                 .build()
         ).toList();
 

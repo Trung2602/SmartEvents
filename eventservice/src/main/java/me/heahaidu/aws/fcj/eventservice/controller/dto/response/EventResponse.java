@@ -12,7 +12,6 @@ import java.util.UUID;
 @Builder
 public class EventResponse {
     private UUID uuid;
-    private UUID pageUuid;
     private String title;
     private String description;
     private Instant startTime;
@@ -25,12 +24,14 @@ public class EventResponse {
     private Integer currentParticipants;
     private String imageUrl;
     private BigDecimal price;
+    private UUID createdBy;
     private String currency;
+    private boolean isLike;
 
     public static EventResponse from(Event event, EventContent content) {
         return EventResponse.builder()
                 .uuid(event.getUuid())
-                .pageUuid(event.getPageUuid())
+                .createdBy(event.getCreatedBy())
                 .maxParticipants(event.getMaxParticipants())
                 .currentParticipants(event.getCurrentParticipants())
                 .title(content.getTitle())
@@ -41,7 +42,7 @@ public class EventResponse {
                 .category(content.getCategory())
                 .startTime(content.getStartTime())
                 .endTime(content.getEndTime())
-                .imageUrl(content.getImageUrls().getFirst())
+//                .imageUrl(content.getImageUrls().getFirst())
                 .build();
     }
 

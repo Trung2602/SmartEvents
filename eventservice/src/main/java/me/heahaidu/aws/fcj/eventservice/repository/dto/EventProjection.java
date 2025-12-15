@@ -7,7 +7,7 @@ import java.util.UUID;
 public interface EventProjection {
 
     UUID getEventUuid();
-    UUID getPageUuid();
+    UUID getCreatedBy();
     Integer getCurrentParticipants();
     Integer getMaxParticipants();
     String getTitle();
@@ -18,4 +18,5 @@ public interface EventProjection {
     String getCategory();
     String[] getImageUrls();
     String getCountryCode();
+    boolean getIsLike();
 }

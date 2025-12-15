@@ -27,15 +27,6 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
             @Param("status") EventStatus status
     );
 
-    @Query("SELECT e FROM Event e WHERE e.pageUuid = :pageUuid AND e.deletedAt IS NULL ORDER BY e.createdAt DESC")
-    List<Event> findByPageUuidAndNotDeleted(@Param("pageUuid") UUID pageUuid);
-
-    @Query("SELECT e FROM Event e WHERE e.createdBy = :userUuid AND e.deletedAt IS NULL ORDER BY e.createdAt DESC")
-    List<Event> findByCreatedByAndNotDeleted(@Param("userUuid") UUID userUuid);
-
-    @Query("SELECT e FROM Event e WHERE e.status = :status AND e.deletedAt IS NULL ORDER BY e.createdAt DESC")
-    List<Event> findByStatusAndNotDeleted(@Param("status") EventStatus status);
-
     @Query("""
             SELECT e FROM Event e
             WHERE e.status = 'PUBLISHED'
@@ -51,9 +42,6 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     boolean existsByUuidAndNotDeleted(@Param("uuid") UUID uuid);
 
     // ==================== Count Operations ====================
-
-    @Query("SELECT COUNT(e) FROM Event e WHERE e.pageUuid = :pageUuid AND e.deletedAt IS NULL")
-    Long countByPageUuid(@Param("pageUuid") UUID pageUuid);
 
     @Query("SELECT COUNT(e) FROM Event e WHERE e.status = :status AND e.deletedAt IS NULL")
     Long countByStatus(@Param("status") EventStatus status);

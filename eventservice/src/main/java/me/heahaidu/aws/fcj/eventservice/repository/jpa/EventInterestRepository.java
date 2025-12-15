@@ -28,7 +28,7 @@ public interface EventInterestRepository extends JpaRepository<EventInterest, UU
     @Query(value = """
         SELECT 
                 e.uuid                      AS eventUuid,
-                e.page_uuid                 AS pageUuid,
+                e.created_by                AS createdBy,
                 e.current_participants      AS currentParticipants,
                 e.max_participants          AS maxParticipants,
                 ec.title                    AS title,

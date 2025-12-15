@@ -21,9 +21,6 @@ public class Event {
     @UuidGenerator(style = UuidGenerator.Style.TIME)
     private UUID uuid;
 
-    @Column(name = "page_uuid", nullable = false)
-    private UUID pageUuid;
-
     @Column(name = "current_version_uuid", nullable = false)
     private UUID currentVersionUuid;
 

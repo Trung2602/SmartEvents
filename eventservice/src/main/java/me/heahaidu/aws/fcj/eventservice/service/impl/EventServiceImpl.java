@@ -4,24 +4,29 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.heahaidu.aws.fcj.eventservice.common.ErrorCode;
 import me.heahaidu.aws.fcj.eventservice.controller.dto.request.CreateEventRequest;
+import me.heahaidu.aws.fcj.eventservice.controller.dto.request.EditEventRequest;
 import me.heahaidu.aws.fcj.eventservice.controller.dto.response.EventListResponse;
 import me.heahaidu.aws.fcj.eventservice.controller.dto.response.EventResponse;
+import me.heahaidu.aws.fcj.eventservice.domain.event.AIEvent;
 import me.heahaidu.aws.fcj.eventservice.enums.EventStatus;
 import me.heahaidu.aws.fcj.eventservice.enums.EventVisibility;
 import me.heahaidu.aws.fcj.eventservice.exception.EventException;
 import me.heahaidu.aws.fcj.eventservice.exception.EventNotFoundException;
+import me.heahaidu.aws.fcj.eventservice.messaging.AIEventProducer;
 import me.heahaidu.aws.fcj.eventservice.repository.dto.EventContentProjection;
 import me.heahaidu.aws.fcj.eventservice.repository.dto.EventProjection;
 import me.heahaidu.aws.fcj.eventservice.repository.entity.Event;
 import me.heahaidu.aws.fcj.eventservice.repository.entity.EventContent;
 import me.heahaidu.aws.fcj.eventservice.repository.jpa.EventContentRepository;
 import me.heahaidu.aws.fcj.eventservice.repository.jpa.EventListRepository;
-import me.heahaidu.aws.fcj.eventservice.repository.jpa.EventRegistrationRepository;
 import me.heahaidu.aws.fcj.eventservice.repository.jpa.EventRepository;
 import me.heahaidu.aws.fcj.eventservice.service.EventService;
 import me.heahaidu.aws.fcj.eventservice.util.CursorUtil;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -37,7 +42,8 @@ public class EventServiceImpl implements EventService {
     private final EventListRepository eventListRepository;
     private final EventRepository  eventRepository;
     private final EventContentRepository eventContentRepository;
-    private final EventRegistrationRepository eventRegistrationRepository;
+
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     @Override
     public EventListResponse getEvents(Instant from, Instant to, String search, Integer limit, String cursor) {
@@ -72,7 +78,7 @@ public class EventServiceImpl implements EventService {
 
         List<EventResponse> items = rows.stream().map(r -> EventResponse.builder()
                 .uuid(r.getEventUuid())
-                .pageUuid(r.getPageUuid())
+                .createdBy(r.getCreatedBy())
                 .title(r.getTitle())
                 .startTime(r.getStartTime())
                 .endTime(r.getEndTime())
@@ -102,11 +108,11 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
-    public EventResponse getEvent(UUID event_id) {
-        EventContentProjection item = eventContentRepository.findByEventByUuid(event_id);
+    public EventResponse getEvent(UUID eventUuid) {
+        EventContentProjection item = eventContentRepository.findByEventByUuid(eventUuid);
         return EventResponse.builder()
                 .uuid(item.getEventUuid())
-                .pageUuid(item.getPageUuid())
+                .createdBy(item.getCreatedBy())
                 .title(item.getTitle())
                 .description(item.getDescription())
                 .startTime(item.getStartTime())
@@ -123,20 +129,23 @@ public class EventServiceImpl implements EventService {
                 .build();
     }
 
+    @Transactional
     @Override
-    public EventResponse createEvent(CreateEventRequest request, UUID createdBy) {
-        log.info("Creating event by user: {}", createdBy);
+    public EventResponse createEvent(CreateEventRequest request, UUID userUuid) {
+        log.info("Creating event by user: {}", userUuid);
 
-        verifyCreatePermission(request.getPageUuid(), createdBy);
+        verifyCreatePermission(userUuid);
         validateTimeRange(request.getStartTime(), request.getEndTime());
 
         Event event = Event.builder()
-                .pageUuid(request.getPageUuid())
-                .status(EventStatus.DRAFT)
-                .visibility(EventVisibility.valueOf(request.getVisibility()))
+                .status(EventStatus.PUBLISHED)
+                .visibility(EventVisibility.PUBLIC)
                 .maxParticipants(request.getMaxParticipants())
-                .createdBy(createdBy)
+                .createdBy(userUuid)
+                .publishedAt(Instant.now())
+                .acceptedAt(Instant.now())
                 .createdAt(Instant.now())
+                .updatedAt(Instant.now())
                 .build();
 
         event.setCurrentVersionUuid(UUID.randomUUID());
@@ -144,23 +153,20 @@ public class EventServiceImpl implements EventService {
 
         EventContent content = EventContent.builder()
                 .eventUuid(event.getUuid())
-                .versionNumber(1)
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .location(request.getLocation())
                 .city(request.getCity())
                 .category(request.getCategory())
-                .subcategory(request.getSubcategory())
-                .tags(request.getTags())
                 .countryCode(request.getCountryCode())
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
-                .timezone(request.getTimezone() != null ? request.getTimezone() : "UTC")
                 .imageUrls(request.getImageUrls())
-                .videoUrl(request.getVideoUrl())
-                .hostUuids(request.getHostUuids())
-                .editedBy(createdBy)
+                .editedBy(userUuid)
                 .isCurrentVersion(true)
+                .createdAt(Instant.now())
+                .price(request.getPrice())
+                .currency(request.getCurrency())
                 .build();
 
         content = eventContentRepository.save(content);
@@ -169,55 +175,70 @@ public class EventServiceImpl implements EventService {
         event = eventRepository.save(event);
 
         log.info("Event created successfully: uuid={}", event.getUuid());
+
+        applicationEventPublisher.publishEvent(content);
+
         return EventResponse.from(event, content);
     }
 
     @Override
-    public EventResponse deleteEvent(UUID event_id) {
-        return null;
+    public void deleteEvent(UUID userUuid, UUID eventUuid) {
+        log.info("Delete event: eventUuid={}, userUuid={}", eventUuid, userUuid);
+        Event event = eventRepository.findByUuidAndNotDeleted(eventUuid)
+                .orElseThrow(() -> new EventNotFoundException(eventUuid));
+
+        if (!event.getCreatedBy().equals(userUuid)) {
+            log.info("Event creator {} request user {}", event.getCreatedBy(), userUuid);
+            throw new EventException("WRONG", "Some thing went wrong");
+        }
+
+        event.setDeletedAt(Instant.now());
+        eventRepository.save(event);
     }
 
     @Override
-    public EventResponse editEvent(UUID eventUuid, CreateEventRequest request, UUID createdBy) {
-        log.info("Editing event: eventUuid={}, userUuid={}", eventUuid, createdBy);
+    @Transactional
+    public EventResponse editEvent(UUID eventUuid, EditEventRequest request, UUID userUuid) {
+        log.info("Editing event: eventUuid={}, userUuid={}", eventUuid, userUuid);
 
         Event event = eventRepository.findByUuidAndNotDeleted(eventUuid)
                 .orElseThrow(() -> new EventNotFoundException(eventUuid));
 
         validateTimeRange(request.getStartTime(), request.getEndTime());
-        verifyEditPermission(event.getPageUuid(), createdBy);
 
+        if (!event.getCreatedBy().equals(userUuid)) {
+            log.info("Event creator {} request user {}", event.getCreatedBy(), userUuid);
+            throw new EventException("WRONG", "Some thing went wrong");
+        }
 
         EventContent currentContent = eventContentRepository.findByUuid(event.getCurrentVersionUuid())
                 .orElseThrow(() -> new EventException(ErrorCode.EVENT_CONTENT_NOT_FOUND));
 
-        Integer nextVersion = eventContentRepository.findMaxVersionByEventUuid(eventUuid) + 1;
+//        Integer nextVersion = eventContentRepository.findMaxVersionByEventUuid(eventUuid) + 1;
 
         eventContentRepository.markAllVersionsAsNotCurrent(eventUuid);
 
         EventContent newContent = EventContent.builder()
                 .eventUuid(eventUuid)
                 .previousVersionUuid(currentContent.getUuid())
-                .versionNumber(nextVersion)
                 .title(getOrDefault(request.getTitle(), currentContent.getTitle()))
                 .description(getOrDefault(request.getDescription(), currentContent.getDescription()))
                 .location(getOrDefault(request.getLocation(), currentContent.getLocation()))
                 .city(getOrDefault(request.getCity(), currentContent.getCity()))
                 .category(getOrDefault(request.getCategory(), currentContent.getCategory()))
-                .subcategory(getOrDefault(request.getSubcategory(), currentContent.getSubcategory()))
-                .tags(request.getTags() != null ? request.getTags() : currentContent.getTags())
                 .countryCode(getOrDefault(request.getCountryCode(), currentContent.getCountryCode()))
                 .startTime(request.getStartTime() != null ? request.getStartTime() : currentContent.getStartTime())
                 .endTime(request.getEndTime() != null ? request.getEndTime() : currentContent.getEndTime())
-                .timezone(getOrDefault(request.getTimezone(), currentContent.getTimezone()))
                 .imageUrls(request.getImageUrls() != null ? request.getImageUrls() : currentContent.getImageUrls())
-                .videoUrl(getOrDefault(request.getVideoUrl(), currentContent.getVideoUrl()))
-                .hostUuids(request.getHostUuids() != null ? request.getHostUuids() : currentContent.getHostUuids())
-                .editedBy(createdBy)
+                .cohostUuids(request.getCoHostUuids() != null ? request.getCoHostUuids() : currentContent.getCohostUuids())
+                .editedBy(userUuid)
                 .isCurrentVersion(true)
                 .build();
 
         newContent = eventContentRepository.save(newContent);
+
+        currentContent.setIsCurrentVersion(false);
+        eventContentRepository.save(currentContent);
 
         event.setCurrentVersionUuid(newContent.getUuid());
         if (request.getMaxParticipants() != null) {
@@ -228,15 +249,44 @@ public class EventServiceImpl implements EventService {
         }
         event = eventRepository.save(event);
 
-        log.info("Event edited successfully: uuid={}, version={}", eventUuid, nextVersion);
+        log.info("Event edited successfully: uuid={}, version={}", eventUuid, -1);
         return EventResponse.from(event, newContent);
+    }
+
+    @Override
+    public void hideEvent(UUID userUuid, UUID eventUuid) {
+        log.info("Hide event: eventUuid={}, userUuid={}", eventUuid, userUuid);
+        Event event = eventRepository.findByUuidAndNotDeleted(eventUuid)
+                .orElseThrow(() -> new EventNotFoundException(eventUuid));
+
+        if (!event.getCreatedBy().equals(userUuid)) {
+            log.info("Event creator {} request user {}", event.getCreatedBy(), userUuid);
+            throw new EventException("WRONG", "Some thing went wrong");
+        }
+
+        event.setVisibility(EventVisibility.PRIVATE);
+        eventRepository.save(event);
+    }
+
+    @Override
+    public void showEvent(UUID userUuid, UUID eventUuid) {
+        log.info("Show event: eventUuid={}, userUuid={}", eventUuid, userUuid);
+        Event event = eventRepository.findByUuidAndNotDeleted(eventUuid)
+                .orElseThrow(() -> new EventNotFoundException(eventUuid));
+
+        if (!event.getCreatedBy().equals(userUuid)) {
+            log.info("Event creator {} request user {}", event.getCreatedBy(), userUuid);
+            throw new EventException("WRONG", "Some thing went wrong");
+        }
+
+        event.setVisibility(EventVisibility.PUBLIC);
+        eventRepository.save(event);
     }
 
     private void validateTimeRange(Instant startTime, Instant endTime) {
         if (endTime.isBefore(startTime)) {
             throw new EventException("INVALID_TIME", "End time must be after start times");
         }
-
         if (startTime.isBefore(Instant.now())) {
             throw new EventException("INVALID_TIME", "Start time must be after now");
         }
@@ -245,7 +295,7 @@ public class EventServiceImpl implements EventService {
         }
     }
 
-    private void verifyCreatePermission(UUID pageUuid, UUID userUuid) {
+    private void verifyCreatePermission(UUID userUuid) {
 
     }
 
@@ -256,5 +306,4 @@ public class EventServiceImpl implements EventService {
     private String getOrDefault(String newValue, String defaultValue) {
         return (newValue != null && !newValue.isBlank()) ? newValue : defaultValue;
     }
-
 }

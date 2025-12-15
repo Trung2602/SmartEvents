@@ -6,7 +6,7 @@ import java.util.UUID;
 
 public interface EventContentProjection extends EventProjection {
     UUID getEventUuid();
-    UUID getPageUuid();
+    UUID getUserUuid();
     Integer getCurrentParticipants();
     Integer getMaxParticipants();
     String getTitle();
