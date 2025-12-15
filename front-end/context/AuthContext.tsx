@@ -3,7 +3,6 @@
 import React, { createContext, useEffect, useState } from "react";
 import { setCookie, deleteCookie, getCookie } from "cookies-next";
 import api, { authApis } from "@/lib/APIs";
-import type { UserProfile } from '@/lib/types';
 import { Toaster } from 'sonner';
 import { UserProfile } from "@/lib/types";
 import { INITIAL_USER } from "@/lib/services/mockData";
@@ -31,17 +30,15 @@ export const AuthProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }
   const loadUser = async () => {
     const token = getCookie("token");
     if (!token) {
-      // setUser(null);
-      setUser(INITIAL_USER)
+      setUser(null);
       setLoading(false);
       return;
     }
 
     try {
       const res = await authApis().get("/secure/profile");
-      // debug
-      // console.log("AuthProvider.loadUser: profile response:", res?.data);
-      setUser(res.data || INITIAL_USER || null);
+      setUser(res.data  || null);
+      console.log("AuthProvider.loadUser: user loaded", res.data);
     } catch (err) {
       setUser(null);
     } finally {

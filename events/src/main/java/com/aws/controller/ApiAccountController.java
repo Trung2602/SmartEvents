@@ -2,10 +2,13 @@ package com.aws.controller;
 
 
 import com.aws.dto.AccountDTO;
+import com.aws.dto.UserProfileResponseDTO;
 import com.aws.pojo.Account;
+import com.aws.pojo.UserProfile;
 import com.aws.services.AccountService;
 import com.aws.services.MailService;
 import com.aws.services.OTPService;
+import com.aws.services.UserProfileService;
 import com.aws.utils.JwtUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -35,6 +38,9 @@ public class ApiAccountController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private UserProfileService userProfileService;
 
 
     @PostMapping("/auth/login")
@@ -94,8 +100,32 @@ public class ApiAccountController {
     @RequestMapping("/secure/profile")
     @ResponseBody
     @CrossOrigin
-    public ResponseEntity<Account> getProfile(Principal principal) {
-        return new ResponseEntity<>(this.accountService.getAccountByEmail(principal.getName()), HttpStatus.OK);
+    public ResponseEntity<UserProfileResponseDTO> getProfile(Principal principal) {
+
+        Account account = accountService.getAccountByEmail(principal.getName());
+
+        UserProfile userProfile = userProfileService.findUserProfileById(account.getUuid());
+
+        UserProfileResponseDTO response = new UserProfileResponseDTO();
+
+        response.setUuid(account.getUuid());
+        response.setEmail(account.getEmail());
+        response.setAvatarUrl(userProfile.getAvatarUrl());
+        response.setBio(userProfile.getBio());
+        response.setFirstName(userProfile.getFirstName());
+        response.setLastName(userProfile.getLastName());
+        response.setFullName(userProfile.getFullName());
+        response.setDateOfBirth(userProfile.getDateOfBirth());
+        response.setCity(userProfile.getCity());
+        response.setCountryCode(userProfile.getCountryCode());
+        response.setInterests(userProfile.getInterests());
+        response.setSocialLinks(userProfile.getSocialLinks());
+        response.setPreferences(userProfile.getPreferences());
+        response.setPrivacySettings(userProfile.getPrivacySettings());
+        response.setCreatedAt(userProfile.getCreatedAt());
+        response.setUpdatedAt(userProfile.getUpdatedAt());
+
+        return ResponseEntity.ok(response);
     }
 
 
@@ -108,6 +138,12 @@ public class ApiAccountController {
             account.setEmail(a.getEmail());
 
             Account accountSaved = this.accountService.addOrUpdateAccount(account);
+
+            UserProfile userProfile = new UserProfile();
+            userProfile.setAccountUuid(accountSaved.getUuid());
+            userProfile.setFirstName(a.getFirstName());
+            userProfile.setLastName(a.getLastName());
+            this.userProfileService.addOrUpdateUserProfile(userProfile);
 
             String otp = String.valueOf(new Random().nextInt(900000) + 100000);
             otpService.saveOtp(a.getEmail(), otp);
@@ -184,7 +220,7 @@ public class ApiAccountController {
         ));
     }
 
-    @PatchMapping("/user/reset-password")
+    @PatchMapping("/account/reset-password")
     public ResponseEntity<?> resetPassword(@RequestParam String resetToken, @RequestParam String password) {
         String email = otpService.getEmailByResetToken(resetToken);
 
@@ -196,12 +232,12 @@ public class ApiAccountController {
         account.setPasswordHash(password);
         this.accountService.addOrUpdateAccount(account);
 
-        otpService.deleteOtp(resetToken);
+        otpService.deleteOtp(email);
 
         return ResponseEntity.ok("Đổi mật khẩu thành công");
     }
 
-    @PostMapping("/user/change-password")
+    @PostMapping("/account/change-password")
     public ResponseEntity<?> changePassword(
             @RequestBody Map<String, String> payload,
             Principal principal) {
@@ -227,6 +263,19 @@ public class ApiAccountController {
             this.accountService.addOrUpdateAccount(account);
 
             return ResponseEntity.ok("Đổi mật khẩu thành công");
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @DeleteMapping("/account/delete")
+    public ResponseEntity<?> deleteAccount(
+            Principal principal) {
+        try {
+            String email = principal.getName();
+            Account account = this.accountService.getAccountByEmail(email);
+            this.accountService.deleteAccount(account);
+            return ResponseEntity.ok("Account has been moved to DisAccount");
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

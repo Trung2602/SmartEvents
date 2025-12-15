@@ -4,6 +4,10 @@ import { User, Bell, Shield, X, Monitor, Sun, Moon, Globe, Clock, ChevronRight, 
 import { Theme, UserProfile } from '@/lib/types';
 import { AuthContext } from '@/context/AuthContext';
 import { useTheme } from '@/context/ThemeContext';
+import api, { authApis, endpoints } from '@/lib/APIs';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import ChangePasswordModal from "@/components/dialogs/ChangePasswordModal";
 
 interface SettingsDialogProps {
   isOpen: boolean;
@@ -13,6 +17,9 @@ interface SettingsDialogProps {
 const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
   const { user } = useContext(AuthContext)
   const [activeTab, setActiveTab] = useState('My account');
+  const router = useRouter();
+  const { signOut } = useContext(AuthContext);
+  const [showChangePassword, setShowChangePassword] = useState(false);
 
   // Password state
   // const [passwordData, setPasswordData] = useState({ current: '', new: '', confirm: '' });
@@ -55,10 +62,14 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
     }
   ];
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    // setFormData({ ...formData, [e.target.name]: e.target.value });
-    // setIsDirty(true);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+    setIsDirty(true);
   };
+
+
+
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -77,7 +88,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
 
   const handleSave = () => {
     // Construct location string from city/country
-    const locationStr = `${formData.city || ''}${formData.city && formData.country ? ', ' : ''}${formData.country || ''}`;
+    const locationStr = `${formData.city || ''}${formData.city && formData.countryCode ? ', ' : ''}${formData.countryCode || ''}`;
     const updatedUser = { ...formData, location: locationStr };
     // onSaveUser(updatedUser);
     setIsDirty(false);
@@ -89,6 +100,22 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
       onClose();
     }
   };
+
+  const handleDeleteAccount = async () => {
+    if (!confirm("Are you sure you want to permanently delete your account?")) return;
+
+    try {
+      await authApis().delete(endpoints["delete-account"]);
+      toast.success("Your account has been deleted.");
+
+      signOut?.();
+      router.push("/");
+    } catch (err: any) {
+      console.error("Delete account error", err);
+      toast.error(err.response?.data?.message || "Failed to delete account");
+    }
+  };
+
 
   const countries = ['USA', 'United Kingdom', 'Canada', 'Germany', 'France', 'Japan', 'Vietnam', 'Australia', 'Other'];
   const timezones = [
@@ -189,11 +216,11 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
                 <div className="flex items-center gap-6 pb-6 border-b border-gray-100 dark:border-[#2f2f2f]">
                   <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                     <div className="w-24 h-24 rounded-full bg-gray-100 dark:bg-white/10 overflow-hidden border border-gray-200 dark:border-white/10">
-                      {formData.avatarUrl.length > 2 ? (
+                      {formData.avatarUrl?.length > 2 ? (
                         <img src={formData.avatarUrl} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-3xl font-medium text-gray-400">
-                          {formData.name.substring(0, 2)}
+                          {formData.email?.substring(0, 2)}
                         </div>
                       )}
                     </div>
@@ -222,45 +249,81 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
                 <div className="space-y-6">
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Personal Information</h3>
 
-                  <div className="grid grid-cols-1 gap-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* First Name */}
                     <div className="space-y-1.5">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Preferred name</label>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">First Name</label>
                       <input
                         type="text"
-                        name="name"
-                        value={formData.name}
+                        name="firstName"
+                        value={formData.firstName || ''}
                         onChange={handleInputChange}
                         className="w-full px-3 py-2 bg-transparent border border-gray-300 dark:border-[#3f3f3f] rounded-md text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
                       />
                     </div>
+
+                    {/* Last Name */}
                     <div className="space-y-1.5">
-                      <label className="block text-xs font-medium text-gray-700 dark:text-gray-300">Username</label>
-                      <div className="relative">
-                        <input
-                          type="text"
-                          name="username"
-                          value={formData.username}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 pl-9 bg-transparent border border-gray-300 dark:border-[#3f3f3f] rounded-lg text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
-                        />
-                        <AtSign size={15} className="absolute left-3 top-2.5 text-gray-400 pointer-events-none" />
-                      </div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Last Name</label>
+                      <input
+                        type="text"
+                        name="lastName"
+                        value={formData.lastName || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-transparent border border-gray-300 dark:border-[#3f3f3f] rounded-md text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
+                      />
                     </div>
+
+                    {/* Full Name (read-only) */}
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Full Name</label>
+                      <input
+                        type="text"
+                        name="fullName"
+                        value={formData.fullName || ''}
+                        readOnly
+                        className="w-full px-3 py-2 bg-gray-100 dark:bg-[#2f2f2f] border border-gray-300 dark:border-[#3f3f3f] rounded-md text-sm outline-none dark:text-white"
+                      />
+                    </div>
+
+                    {/* Date of Birth */}
                     <div className="space-y-1.5">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Email</label>
-                      <div className="relative">
-                        <input
-                          type="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          className="w-full px-3 py-2 pl-9 bg-transparent border border-gray-300 dark:border-[#3f3f3f] rounded-md text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
-                        />
-                        <Mail size={16} className="absolute left-3 top-2.5 text-gray-400 pointer-events-none" />
-                      </div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Date of Birth</label>
+                      <input
+                        type="date"
+                        name="dateOfBirth"
+                        value={formData.dateOfBirth || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-transparent border border-gray-300 dark:border-[#3f3f3f] rounded-md text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
+                      />
+                    </div>
+
+                    {/* City */}
+                    <div className="space-y-1.5">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">City</label>
+                      <input
+                        type="text"
+                        name="city"
+                        value={formData.city || ''}
+                        onChange={handleInputChange}
+                        className="w-full px-3 py-2 bg-transparent border border-gray-300 dark:border-[#3f3f3f] rounded-md text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
+                      />
+                    </div>
+
+                    {/* Bio */}
+                    <div className="space-y-1.5 md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Bio</label>
+                      <textarea
+                        name="bio"
+                        value={formData.bio || ''}
+                        onChange={handleInputChange}
+                        rows={3}
+                        className="w-full px-3 py-2 bg-transparent border border-gray-300 dark:border-[#3f3f3f] rounded-md text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
+                      />
                     </div>
                   </div>
                 </div>
+
 
                 {/* Password */}
                 <div className="pt-6 border-t border-gray-100 dark:border-[#2f2f2f]">
@@ -271,11 +334,12 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
                       <div className="text-sm text-gray-500 dark:text-gray-400">Set a permanent password to login to your account.</div>
                     </div>
                     <button
-                      onClick={() => alert("Password change flow would open here")}
-                      className="text-sm border border-gray-300 dark:border-[#3f3f3f] px-3 py-1.5 rounded hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-gray-700 dark:text-gray-200"
+                      onClick={() => setShowChangePassword(true)}
+                      className="text-sm border border-gray-300 px-3 py-1.5 rounded"
                     >
                       Change password
                     </button>
+
                   </div>
                 </div>
 
@@ -287,7 +351,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
                       <div className="text-sm font-medium text-gray-900 dark:text-white">Delete account</div>
                       <div className="text-sm text-gray-500 dark:text-gray-400">Permanently remove your account and all of its contents.</div>
                     </div>
-                    <button className="text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 px-3 py-1.5 rounded transition-colors flex items-center gap-2">
+                    <button onClick={handleDeleteAccount} className="text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10 px-3 py-1.5 rounded transition-colors flex items-center gap-2">
                       <Trash2 size={14} /> Delete account
                     </button>
                   </div>
@@ -370,7 +434,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
                       <div className="relative">
                         <select
                           name="country"
-                          value={formData.country || ''}
+                          value={formData.countryCode || ''}
                           onChange={handleInputChange}
                           className="w-full appearance-none px-3 py-2 bg-transparent border border-gray-300 dark:border-[#3f3f3f] rounded-md text-sm focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all dark:text-white"
                         >
@@ -395,7 +459,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
                   </div>
                 </div>
 
-                <div className="pt-6 border-t border-gray-100 dark:border-[#2f2f2f]">
+                {/* <div className="pt-6 border-t border-gray-100 dark:border-[#2f2f2f]">
                   <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-4">Date & Time</h3>
                   <div className="space-y-1.5">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Timezone</label>
@@ -413,7 +477,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
                     </div>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Your timezone is currently determined by your device location.</p>
                   </div>
-                </div>
+                </div> */}
               </div>
             )}
 
@@ -443,6 +507,11 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
               </button>
             </div>
           )}
+          <ChangePasswordModal
+            isOpen={showChangePassword}
+            onClose={() => setShowChangePassword(false)}
+          />
+
         </div>
       </div>
     </div>

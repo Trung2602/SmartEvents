@@ -200,7 +200,7 @@ export default function EventEditorDialog({ event, isOpen, onClose, onSave }: Ev
     }
 
     const addCoHost = (coHost: UserProfile) => {
-        if (formData.coHosts?.find(c => c.username === coHost.username)) return;
+        if (formData.coHosts?.find(c => c.email === coHost.email)) return;
         setFormData(prev => ({
             ...prev,
             coHosts: [...(prev.coHosts || []), coHost]
@@ -211,7 +211,7 @@ export default function EventEditorDialog({ event, isOpen, onClose, onSave }: Ev
     const removeCoHost = (username: string) => {
         setFormData(prev => ({
             ...prev,
-            coHosts: prev.coHosts?.filter(c => c.username !== username)
+            coHosts: prev.coHosts?.filter(c => c.email !== username)
         }));
     };
 
@@ -398,7 +398,7 @@ export default function EventEditorDialog({ event, isOpen, onClose, onSave }: Ev
                                 </div>
 
                                 {formData.coHosts?.map(coHost => (
-                                    <div key={coHost.username || coHost.uuid} className="flex items-center gap-3 p-2 pr-5 rounded-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 relative group">
+                                    <div key={coHost.email || coHost.uuid} className="flex items-center gap-3 p-2 pr-5 rounded-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5 relative group">
                                         {coHost.avatarUrl && coHost.avatarUrl.length > 2 ? (
                                             <img src={coHost.avatarUrl} className="w-10 h-10 rounded-full bg-gray-300" />
                                         ) : (
@@ -411,7 +411,7 @@ export default function EventEditorDialog({ event, isOpen, onClose, onSave }: Ev
                                             <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Co-Host</div>
                                         </div>
                                         <button
-                                            onClick={() => removeCoHost(coHost.username || '')}
+                                            onClick={() => removeCoHost(coHost.email || '')}
                                             className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
                                         >
                                             <X size={12} />
@@ -439,7 +439,7 @@ export default function EventEditorDialog({ event, isOpen, onClose, onSave }: Ev
                                                 />
                                             </div>
                                             <div className="max-h-40 overflow-y-auto space-y-1">
-                                                {MOCK_USERS.filter(u => u.username.includes(coHostSearchTerm) || u.name.toLowerCase().includes(coHostSearchTerm)).map(u => (
+                                                {MOCK_USERS.filter(u => u.email.includes(coHostSearchTerm) || u.name.toLowerCase().includes(coHostSearchTerm)).map(u => (
                                                     <button
                                                         key={u.uuid}
                                                         onClick={() => addCoHost(u)}
@@ -454,7 +454,7 @@ export default function EventEditorDialog({ event, isOpen, onClose, onSave }: Ev
                                                         )}
                                                         <div className="truncate">
                                                             <div className="text-sm font-medium dark:text-white">{u.name}</div>
-                                                            <div className="text-xs text-gray-500">{u.username}</div>
+                                                            <div className="text-xs text-gray-500">{u.email}</div>
                                                         </div>
                                                     </button>
                                                 ))}

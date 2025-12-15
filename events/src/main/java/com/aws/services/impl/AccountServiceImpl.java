@@ -2,9 +2,12 @@ package com.aws.services.impl;
 
 
 import com.aws.pojo.Account;
+import com.aws.pojo.DisAccount;
 import com.aws.repositories.AccountRepository;
+import com.aws.repositories.DisAccountRepository;
 import com.aws.services.AccountService;
 import jakarta.transaction.Transactional;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -31,6 +34,9 @@ public class AccountServiceImpl implements AccountService {
 
     @Autowired
     private AccountRepository accountRepository;
+
+    @Autowired
+    private DisAccountRepository disAccountRepository;
 
     @Transactional
     @Override
@@ -83,8 +89,16 @@ public class AccountServiceImpl implements AccountService {
         return false;
     }
 
+    @Transactional
     @Override
     public void deleteAccount(Account a) {
+
+        DisAccount disAccount = new DisAccount();
+        BeanUtils.copyProperties(a, disAccount);
+
+        disAccountRepository.save(disAccount);
+
+        accountRepository.delete(a);
         this.accountRepository.delete(a);
     }
 

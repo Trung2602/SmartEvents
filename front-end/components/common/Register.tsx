@@ -17,6 +17,9 @@ export default function Register({ onSuccess }: RegisterProps) {
   const [loading, setLoading] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otp, setOtp] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,6 +32,8 @@ export default function Register({ onSuccess }: RegisterProps) {
       setLoading(true);
 
       const res = await api.post(endpoints.register, {
+        firstName: firstName,
+        lastName: lastName,
         email: email,
         password: password,
       });
@@ -49,12 +54,10 @@ export default function Register({ onSuccess }: RegisterProps) {
     try {
       setLoading(true);
       // call backend verifyEmail endpoint which expects email and otp as request params
-      const res = await api.post('/user/verify-email', null, { params: { email, otp } });
+      const res = await api.post(endpoints["verify-email"], null, { params: { email, otp } });
       toast.success(res.data?.message || 'Xác thực thành công');
       setShowOtpModal(false);
-      // notify parent (if Register is rendered inside a modal) to close it
       onSuccess?.();
-      // then redirect to landing/login page
       router.push('/');
     } catch (err: any) {
       console.error('otp verify error', err);
@@ -72,6 +75,30 @@ export default function Register({ onSuccess }: RegisterProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="flex gap-4">
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1">First Name</label>
+            <input
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              type="text"
+              placeholder="First Name"
+              className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-black focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+
+          <div className="flex-1">
+            <label className="block text-sm font-medium mb-1">Last Name</label>
+            <input
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              type="text"
+              placeholder="Last Name"
+              className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-black focus:ring-2 focus:ring-indigo-500 outline-none"
+            />
+          </div>
+        </div>
+
         <div>
           <label className="block text-sm font-medium mb-1">Email</label>
           <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Enter your email" className="w-full px-4 py-2.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-black focus:ring-2 focus:ring-indigo-500 outline-none" />

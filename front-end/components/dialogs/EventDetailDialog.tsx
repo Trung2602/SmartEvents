@@ -265,7 +265,7 @@ export default function EventDetailDialog({
 
                                     {/* Co-Hosts */}
                                     {event.coHosts && event.coHosts.map(host => (
-                                        <div key={host.username || host.uuid} className="flex items-center gap-3 p-2 pr-4 rounded-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
+                                        <div key={host.email || host.uuid} className="flex items-center gap-3 p-2 pr-4 rounded-full bg-gray-50 dark:bg-white/5 border border-gray-100 dark:border-white/5">
                                             <img src={host.avatarUrl} className="w-10 h-10 rounded-full bg-gray-300" />
                                             <div>
                                                 <div className="text-sm font-bold text-gray-900 dark:text-white leading-none">{host.name}</div>

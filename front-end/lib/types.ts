@@ -36,20 +36,21 @@ export interface UserProfile {
   uuid: string;
   name: string;
   email: string;
-  username: string;
   avatarUrl: string;
   bio?: string;
 
-  // Social profile fields
-  coverUrl?: string;
-  followers?: number;
-  following?: number;
-  jobTitle?: string;
-  location?: string; // Formatted string e.g. "San Francisco, CA"
-  city?: string; // New
-  country?: string; // New
-  timezone?: string; // New
-  joinedDate?: string;
+  firstName?: string;
+  lastName?: string;
+  fullName?: string;
+  dateOfBirth?: string; 
+  city?: string;
+  countryCode?: string;
+  interests?: any; 
+  socialLinks?: any; 
+  preferences?: any; 
+  privacySettings?: any; 
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ManagedPage {
@@ -161,27 +162,4 @@ export interface Review {
   comment: string;
   timestamp: string;
   replies: ReviewReply[];
-export interface UserProfile {
-  // basic auth fields
-  id?: string | number;
-  name?: string;
-  email?: string;
-  username?: string;
-  avatarUrl?: string;
-  bio?: string;
-
-  // profile fields (backend POJO)
-  accountUuid?: string;
-  firstName?: string;
-  lastName?: string;
-  fullName?: string;
-  dateOfBirth?: string; // ISO date string
-  city?: string;
-  countryCode?: string;
-  interests?: any; // jsonb
-  socialLinks?: any; // jsonb
-  preferences?: any; // jsonb
-  privacySettings?: any; // jsonb
-  createdAt?: string;
-  updatedAt?: string;
 }

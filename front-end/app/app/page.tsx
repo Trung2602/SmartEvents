@@ -10,10 +10,6 @@ import Sidebar from '@/app/app/Sidebar';
 import { AppPage, DateFilter, Event, Theme, UserProfile, ViewMode } from '@/lib/types';
 import Footer from './Footer';
 import { Menu } from 'lucide-react';
-import { Modal } from '@/components/common/Modal';
-import Login from '@/components/common/Login';
-import Register from '@/components/common/Register';
-import { eventApi } from '@/lib/api/event';
 import Discover from './pages/Discover';
 import Activity from './pages/Activity';
 import SettingsDialog from '@/components/dialogs/SettingsDialog';
@@ -21,6 +17,7 @@ import AiChatWidget from '@/components/shared/AiChatWidget';
 import EventDetailDialog from '@/components/dialogs/EventDetailDialog';
 import EventEditorDialog from '@/components/dialogs/EventEditorDialog';
 import { AuthContext } from '@/context/AuthContext';
+import { eventApi } from '@/lib/api/event';
 
 export default function Home() {
   const { user } = useContext(AuthContext);
@@ -49,9 +46,6 @@ export default function Home() {
   const moreCatRef = useRef<HTMLDivElement>(null);
   const countryRef = useRef<HTMLDivElement>(null);
   const searchParams = useSearchParams();
-  // auth modals
-  const [showSignInModal, setShowSignInModal] = useState(false);
-  const [showSignUpModal, setShowSignUpModal] = useState(false);
 
   const handleRegisterEvent = (event: Event) => {
     const updatedEvent = { ...event, isRegistered: true };

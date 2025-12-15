@@ -7,9 +7,14 @@ export const endpoints = {
   // Auth
   "register": "register/account",
   "login": "auth/login",
-  "verify-email": "register/verify-email",
+  "verify-email": "account/verify-email",
   "profile": "secure/profile",
   "profile-update": "register/profile",
+  "delete-account": "account/delete",
+  "forgot-password": "account/forgot-password",
+  "account-verify-forgot-password": "account/verify-forgot-password",
+  "reset-password": "account/reset-password",
+  "change-password": "account/change-password",
 
   // Page
   "page-update": "page-update",
