@@ -72,7 +72,12 @@ jobs:
   
     - name: Build Static Website
       run: npm run build
-  
+    - name: Debug OIDC Context
+      run: |
+        echo "REPO=$GITHUB_REPOSITORY"
+        echo "REF=$GITHUB_REF"
+        echo "ENV=$GITHUB_ENVIRONMENT"
+
     - name: Copy files to the production website with the AWS CLI
       run: |
         aws s3 sync --delete ${{ env.NEXTJS_DIST }} s3://${{ env.S3_BUCKET }}
