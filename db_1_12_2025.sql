@@ -81,7 +81,7 @@ CREATE TABLE user_profile (
     privacy_settings JSONB, -- Profile visibility
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_profile_account FOREIGN KEY (account_uuid) REFERENCES account(uuid) ON DELETE CASCADE
+    -- CONSTRAINT fk_profile_account FOREIGN KEY (account_uuid) REFERENCES account(uuid) ON DELETE CASCADE
 );
 
 -- Indexes cho performance
@@ -502,3 +502,17 @@ CREATE TABLE notification_outbox (
 
 CREATE INDEX idx_notification_user ON notification(user_uuid, created_at DESC) WHERE is_read = FALSE;
 CREATE INDEX idx_notification_status ON notification(delivery_status) WHERE delivery_status = 'PENDING';
+
+CREATE TABLE event_vector_chunk (
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+    source_event_uuid UUID NOT NULL, 
+    chunk_text TEXT NOT NULL, 
+    embedding bytea NOT NULL, 
+    category VARCHAR(100), 
+    status VARCHAR(10),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX ON event_vector_chunk USING ivfflat (embedding vector_cosine_ops) 
+WITH (lists = 1000);
