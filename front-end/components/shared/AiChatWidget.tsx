@@ -159,10 +159,7 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) 
             />
             <button
               onClick={handleSend}
-              disabled={!inputValue.trim() || 
-                       
-                       
-                       }
+              disabled={!inputValue.trim()}
               className="absolute right-1.5 p-2 bg-brand-purple text-white rounded-full hover:bg-purple-600 disabled:opacity-50 disabled:hover:bg-brand-purple transition-colors"
             >
               {wsTyping ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
