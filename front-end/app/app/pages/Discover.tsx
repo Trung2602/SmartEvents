@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+// import { useSearchParams } from 'next/navigation';
 import { DateFilter, Event, ViewMode } from '@/lib/types';
 import { Check, ChevronDown, Globe, Menu, Search } from 'lucide-react';
 import AutoBanner from '@/components/common/AutoBanner';
@@ -41,7 +41,7 @@ export default function Discover({ showSignInPopup, selectedEvent, onSelectedEve
     // Refs for clicking outside dropdowns
     const moreCatRef = useRef<HTMLDivElement>(null);
     const countryRef = useRef<HTMLDivElement>(null);
-    const searchParams = useSearchParams();
+    // const searchParams = useSearchParams();
 
     const hiddenCategories = ALL_CATEGORIES.filter(c => !visibleCategories.includes(c));
 

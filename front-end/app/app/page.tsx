@@ -1,7 +1,6 @@
 'use client';
 
 import { useContext, useEffect, useRef, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 import Header from '@/components/common/Header';
 import { Modal } from '@/components/common/Modal';
 import Login from '@/components/common/Login';
@@ -44,7 +43,6 @@ export default function Home() {
   // Refs for clicking outside dropdowns
   const moreCatRef = useRef<HTMLDivElement>(null);
   const countryRef = useRef<HTMLDivElement>(null);
-  const searchParams = useSearchParams();
   // auth modals
   const [showSignInModal, setShowSignInModal] = useState(false);
 

@@ -3,7 +3,6 @@
 import React, { createContext, useEffect, useState } from "react";
 import { setCookie, deleteCookie, getCookie } from "cookies-next";
 import api, { authApis } from "@/lib/APIs";
-import type { UserProfile } from '@/lib/types';
 import { Toaster } from 'sonner';
 import { UserProfile } from "@/lib/types";
 import { INITIAL_USER } from "@/lib/services/mockData";
