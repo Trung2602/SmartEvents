@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Compute :: My Blog Page</title>
+    <link>http://localhost:1313/firstcloudjourney/03-compute/index.html</link>
+    <description>1. What is computing?&#xD;1.1 Components&#xD;CPU:&#xA;Runs and processes the instructions that it is given RAM:&#xA;Stores data that the computer needs to carry out processing tasks Temporary storage Hard drive:&#xA;Long-term storage Stores the boot files and files that you create Network performance: Measured by&#xA;Bandwidth: the amount of data that can be sent over a specified time Latency: How long it takes the data to travel 1.2 Benefits of cloud computing&#xD;Save on costs:</description>
+    <generator>Hugo</generator>
+    <language>en</language>
+    <lastBuildDate></lastBuildDate>
+    <atom:link href="http://localhost:1313/firstcloudjourney/03-compute/index.xml" rel="self" type="application/rss+xml" />
+  </channel>
+</rss>

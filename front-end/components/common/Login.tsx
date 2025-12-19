@@ -3,7 +3,7 @@
 import { Button } from "../ui/button";
 import { useState, useContext } from "react";
 import { setCookie } from "cookies-next";
-import api from "@/lib/APIs";
+import api, { endpoints } from "@/lib/APIs";
 import { AuthContext } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
@@ -28,7 +28,7 @@ export default function Login({ onSuccess }: LoginProps) {
       onSuccess?.();
     } catch (err: any) {
       const msg = err.response?.data || err.response?.data?.message || err.message;
-      // If backend indicates email not verified, open OTP modal
+
       if (err.response?.status === 403 && typeof msg === 'string' && msg.toLowerCase().includes('email not verified')) {
         toast.info('Email chưa xác thực. Mã OTP đã được gửi, vui lòng kiểm tra email.');
         setShowOtpModal(true);
@@ -44,7 +44,7 @@ export default function Login({ onSuccess }: LoginProps) {
     if (!otp) return toast.error('Vui lòng nhập mã OTP');
     try {
       // call verify endpoint
-      const res = await api.post('/user/verify-email', null, { params: { email, otp } });
+      const res = await api.post(endpoints["verify-email"], null, { params: { email, otp } });
       toast.success(res.data?.message || 'Xác thực thành công');
       setShowOtpModal(false);
 

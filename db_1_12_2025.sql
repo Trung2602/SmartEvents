@@ -81,7 +81,7 @@ CREATE TABLE user_profile (
     privacy_settings JSONB, -- Profile visibility
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_profile_account FOREIGN KEY (account_uuid) REFERENCES account(uuid) ON DELETE CASCADE
+    -- CONSTRAINT fk_profile_account FOREIGN KEY (account_uuid) REFERENCES account(uuid) ON DELETE CASCADE
 );
 
 -- Indexes cho performance

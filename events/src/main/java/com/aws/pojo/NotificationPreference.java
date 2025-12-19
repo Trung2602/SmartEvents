@@ -1,5 +1,6 @@
 package com.aws.pojo;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.vladmihalcea.hibernate.type.json.JsonType;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -36,7 +37,7 @@ public class NotificationPreference {
 
     @Type(JsonType.class)
     @Column(name = "blocked_categories", columnDefinition = "jsonb")
-    private String blockedCategories;
+    private JsonNode blockedCategories;
 
     @Column(name = "created_at")
     private LocalDateTime createdAt = LocalDateTime.now();

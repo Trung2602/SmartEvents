@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
 import axios, { endpoints, authApis } from '@/lib/APIs';
+import { AuthContext } from '@/context/AuthContext';
 
 export default function CreatePageDialog({ onCreated }: { onCreated?: (page: any) => void }) {
+  const { user } = useContext(AuthContext);
   const [open, setOpen] = useState(false);
   const [pageName, setPageName] = useState("");
   const [description, setDescription] = useState("");
@@ -16,13 +18,22 @@ export default function CreatePageDialog({ onCreated }: { onCreated?: (page: any
     setLoading(true);
     try {
         // gọi API tạo page
-        const res = await authApis().post(endpoints["page-update"], {
-        name: pageName,
-        description,
-        pageType,
-        avatarUrl,
-        coverImageUrl,
-        });
+        const res = await authApis().post(
+          endpoints["page-update"],
+          {
+            name: pageName,
+            description,
+            pageType,
+            avatarUrl,
+            coverImageUrl,
+          },
+          {
+            headers: {
+              "X-User-Email": user?.email,
+            },
+          }
+        );
+
 
         const newPage = res.data;
 

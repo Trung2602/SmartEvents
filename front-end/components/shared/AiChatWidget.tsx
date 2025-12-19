@@ -1,8 +1,7 @@
-
+import { useStompChat } from '../../hooks/useStompChat';
 import React, { useState, useRef, useEffect } from 'react';
 import { Sparkles, X, Send, Bot, User as UserIcon, Loader2, ChevronDown } from 'lucide-react';
-import { Event, ChatMessage } from '../../lib/types';
-import { sendMessageToAI } from '../../service/geminiService';
+import { Event } from '../../lib/types';
 import EventCard from './EventCard';
 
 interface AiChatWidgetProps {
@@ -13,71 +12,39 @@ interface AiChatWidgetProps {
 const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: 'welcome',
-      sender: 'ai',
-      text: "Hi! I'm your event assistant. Looking for something specific? Try 'Music festivals this weekend' or 'Tech meetups'.",
-      timestamp: new Date()
-    }
-  ]);
+  const [messages, setMessages] = useState<typeof wsMessages>([]);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  // STOMP chat hook
+  const { messages: wsMessages, sendMessage, isTyping: wsTyping } = useStompChat(
+    'http://localhost:8080/ws-chat/websocket',
+    '/topic/answer',
+    '/app/query'
+  );
+
   useEffect(() => {
-    if (isOpen) {
-      scrollToBottom();
-    }
-  }, [messages, isOpen, isTyping]);
+    if (isOpen) scrollToBottom();
+  }, [wsMessages, wsTyping, isOpen]);
 
-  const handleSend = async () => {
+  useEffect(() => {
+    setMessages(prev => {
+      // thêm các tin nhắn mới từ wsMessages
+      const newMsgs = wsMessages.slice(prev.length);
+      return [...prev, ...newMsgs];
+    });
+    console.log('Updated messages from WS:', wsMessages);
+    console.log('Updated messages from WS:', messages.length);
+  }, [wsMessages]);
+
+
+  const handleSend = () => {
     if (!inputValue.trim()) return;
-
-    const userText = inputValue;
+    sendMessage(inputValue);
     setInputValue('');
-
-    // 1. Add User Message
-    const userMsg: ChatMessage = {
-      id: Date.now().toString(),
-      sender: 'user',
-      text: userText,
-      timestamp: new Date()
-    };
-    setMessages(prev => [...prev, userMsg]);
-    setIsTyping(true);
-
-    try {
-      // 2. Call AI Service
-      const response = await sendMessageToAI(userText, allEvents);
-
-      // 3. Add AI Message
-      const aiMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        sender: 'ai',
-        text: response.text,
-        relatedEventIds: response.eventIds,
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, aiMsg]);
-
-      console.log(messages)
-    } catch (error) {
-      console.error(error);
-      const errorMsg: ChatMessage = {
-        id: (Date.now() + 1).toString(),
-        sender: 'ai',
-        text: "Sorry, I'm having trouble connecting to the event database right now.",
-        timestamp: new Date()
-      };
-      setMessages(prev => [...prev, errorMsg]);
-    } finally {
-      setIsTyping(false);
-    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -87,29 +54,29 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) 
     }
   };
 
-  // Helper to find event object by ID
-  const getEventById = (uuid: string) => allEvents.find(e => e.uuid === uuid);
+  const getEventById = (uuid: string) => allEvents.find((e) => e.uuid === uuid);
 
   return (
     <>
-      {/* Floating Action Button */}
+      {/* FAB */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-24 right-6 lg:bottom-6 md:right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 ${isOpen
+        className={`fixed bottom-24 right-6 md:bottom-6 md:right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 ${
+          isOpen
             ? 'bg-gray-900 text-white dark:bg-white dark:text-black'
             : 'bg-gradient-to-tr from-brand-purple to-blue-500 text-white'
-          }`}
+        }`}
       >
         {isOpen ? <ChevronDown size={28} /> : <Sparkles size={24} />}
       </button>
 
       {/* Chat Window */}
       <div
-        className={`fixed z-40 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-2xl overflow-hidden transition-all duration-300 ease-out flex flex-col
-          ${isOpen
-            ? 'flex bottom-44 right-4 lg:bottom-24 md:right-6 w-[90vw] md:w-[380px] h-[600px] rounded-xl opacity-100 scale-100 translate-y-0'
-            : 'bottom-10 right-6 w-0 h-0 opacity-0 scale-90 translate-y-10 rounded-xl'
-          }`}
+        className={`fixed z-40 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-2xl overflow-hidden transition-all duration-300 ease-out flex flex-col ${
+          isOpen
+            ? 'bottom-24 right-4 md:bottom-24 md:right-6 w-[90vw] md:w-[380px] h-[600px] rounded-3xl opacity-100 scale-100 translate-y-0'
+            : 'bottom-10 right-6 w-0 h-0 opacity-0 scale-90 translate-y-10 rounded-full'
+        }`}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-white/5 bg-white/50 dark:bg-black/20">
@@ -129,44 +96,34 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) 
           </button>
         </div>
 
-        {/* Messages Area */}
+        {/* Messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          {/* {wsMessages.map((msg) => ( */}
           {messages.map((msg) => (
             <div key={msg.id} className={`flex gap-3 ${msg.sender === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
-              {/* Avatar */}
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 ${msg.sender === 'user'
-                  ? 'bg-gray-200 dark:bg-white/10'
-                  : 'bg-brand-purple/10 text-brand-purple'
-                }`}>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 mt-1 ${
+                msg.sender === 'user' ? 'bg-gray-200 dark:bg-white/10' : 'bg-brand-purple/10 text-brand-purple'
+              }`}>
                 {msg.sender === 'user' ? <UserIcon size={14} /> : <Bot size={16} />}
               </div>
 
-              {/* Bubble */}
-              <div className={`flex flex-col gap-2 max-w-[85%]`}>
-                <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${msg.sender === 'user'
-                    ? 'bg-brand-purple text-white rounded-tr-sm'
-                    : 'bg-gray-100 dark:bg-white/5 text-gray-800 dark:text-gray-200 rounded-tl-sm'
-                  }`}>
+              <div className="flex flex-col gap-2 max-w-[85%]">
+                <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                  msg.sender === 'user' ? 'bg-brand-purple text-white rounded-tr-sm' : 'bg-gray-100 dark:bg-white/5 text-gray-800 dark:text-gray-200 rounded-tl-sm'
+                }`}>
                   {msg.text}
                 </div>
 
-                {/* Event Suggestions */}
-                {msg.sender === 'ai' && msg.relatedEventIds && msg.relatedEventIds.length > 0 && (
+                {msg.sender === 'ai' && (msg.relatedEventIds?.length ?? 0) > 0 && (
                   <div className="flex flex-col gap-2 mt-1">
-                    {msg.relatedEventIds.map(id => {
+                    {(msg.relatedEventIds ?? []).map(id => {
                       const event = getEventById(id);
                       if (!event) return null;
-                      return (
-                        <EventCard
-                          key={id}
-                          event={event}
-                          variant="chat"
-                          onClick={() => onEventClick(event)}
-                        />
-                      );
+                      return <EventCard key={id} event={event} variant="chat" onClick={() => onEventClick(event)} />;
                     })}
                   </div>
                 )}
+
                 <span className="text-[10px] text-gray-400 px-1 opacity-50">
                   {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                 </span>
@@ -174,7 +131,7 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) 
             </div>
           ))}
 
-          {isTyping && (
+          {wsTyping && (
             <div className="flex gap-3">
               <div className="w-8 h-8 rounded-full bg-brand-purple/10 text-brand-purple flex items-center justify-center shrink-0">
                 <Bot size={16} />
@@ -189,7 +146,7 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) 
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Area */}
+        {/* Input */}
         <div className="p-4 bg-white dark:bg-[#121212] border-t border-gray-100 dark:border-white/5">
           <div className="relative flex items-center">
             <input
@@ -202,10 +159,13 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) 
             />
             <button
               onClick={handleSend}
-              disabled={!inputValue.trim() || isTyping}
+              disabled={!inputValue.trim() || 
+                       
+                       
+                       }
               className="absolute right-1.5 p-2 bg-brand-purple text-white rounded-full hover:bg-purple-600 disabled:opacity-50 disabled:hover:bg-brand-purple transition-colors"
             >
-              {isTyping ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+              {wsTyping ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
             </button>
           </div>
         </div>

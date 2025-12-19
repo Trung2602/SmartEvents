@@ -3,6 +3,7 @@
 import React, { createContext, useEffect, useState } from "react";
 import { setCookie, deleteCookie, getCookie } from "cookies-next";
 import api, { authApis } from "@/lib/APIs";
+import type { UserProfile } from '@/lib/types';
 import { Toaster } from 'sonner';
 import { UserProfile } from "@/lib/types";
 import { INITIAL_USER } from "@/lib/services/mockData";
@@ -12,6 +13,7 @@ type AuthContextValue = {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => void;
+  reloadUser: () => Promise<void>;
 };
 
 export const AuthContext = createContext<AuthContextValue>({
@@ -19,6 +21,7 @@ export const AuthContext = createContext<AuthContextValue>({
   loading: true,
   signIn: async () => {},
   signOut: () => {},
+  reloadUser: async () => {},
 });
 
 export const AuthProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }) => {
@@ -49,6 +52,10 @@ export const AuthProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }
   useEffect(() => {
     loadUser();
   }, []);
+
+  const reloadUser = async () => {
+    await loadUser();
+  };
 
   const signIn = async (email: string, password: string) => {
     const res = await api.post("/auth/login", {
@@ -88,7 +95,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren<{}>> = ({ children }
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut, reloadUser }}>
       {children}
       <Toaster />
     </AuthContext.Provider>

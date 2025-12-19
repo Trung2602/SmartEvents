@@ -9,14 +9,13 @@ export const endpoints = {
   "login": "auth/login",
   "verify-email": "register/verify-email",
   "profile": "secure/profile",
-  "profile-update": "account/edit",
+  "profile-update": "register/profile",
 
   // Page
   "page-update": "page-update",
   "page-delete": (id: string | number) => `page-delete/${id}`,
   "page-detail": (id: string | number) => `page-detail/${id}`,
-  "pages-owner": (ownerUuid: string) => `pages/owner/${ownerUuid}`,
-  "pages-owner-test": "pages/owner/4c10b45f-4d92-4774-8f00-8620e1e62d56",
+  "pages-owner": "pages/owner",
   "pages": "pages",
 
   // Page Member
