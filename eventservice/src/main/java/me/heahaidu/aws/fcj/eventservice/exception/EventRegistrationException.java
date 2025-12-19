@@ -25,4 +25,5 @@ public class EventRegistrationException extends EventException {
     public static EventRegistrationException eventEnded() {
         return new EventRegistrationException("EVENT_ENDED", "Event has already ended");
     }
+
 }

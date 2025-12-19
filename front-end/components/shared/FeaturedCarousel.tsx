@@ -32,7 +32,7 @@ export default function FeaturedCarousel({ events }: FeaturedCarouselProps) {
       {/* Background Image with Zoom Effect */}
       <div className="absolute inset-0 bg-black">
          <img 
-            key={currentEvent.id}
+            key={currentEvent.uuid}
             src={currentEvent.imageUrl} 
             alt={currentEvent.title} 
             className="w-full h-full object-cover opacity-80 animate-in fade-in duration-700 scale-105"
@@ -57,7 +57,7 @@ export default function FeaturedCarousel({ events }: FeaturedCarouselProps) {
         <div className="flex flex-wrap items-center gap-6 text-white/90 text-sm md:text-base font-medium mt-2">
           <div className="flex items-center gap-2 bg-black/30 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
              <Calendar size={18} className="text-brand-purple" /> 
-             <span>{currentEvent.date || ''}</span>
+             <span>{currentEvent.startTime || ''}</span>
           </div>
           <div className="flex items-center gap-2 bg-black/30 backdrop-blur-md px-4 py-2 rounded-xl border border-white/10">
              <MapPin size={18} className="text-brand-purple" />

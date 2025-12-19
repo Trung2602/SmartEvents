@@ -200,7 +200,6 @@ CREATE TABLE page_audit_log (
 -- Event core entity - chỉ chứa metadata
 CREATE TABLE event (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    page_uuid UUID NOT NULL, -- NO FK! Event Service chỉ store UUID
     current_version_uuid UUID NOT NULL,
     status VARCHAR(10) DEFAULT 'DRAFT', -- DRAFT -> PENDING -> PUBLISHED
     visibility VARCHAR(10) DEFAULT 'PUBLIC', -- PUBLIC, PRIVATE, UNLISTED
@@ -225,25 +224,21 @@ CREATE TABLE event_content (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     event_uuid UUID NOT NULL,
     previous_version_uuid UUID, -- Self-referencing
-    version_number INTEGER NOT NULL DEFAULT 1,
     title VARCHAR(255) NOT NULL CHECK (LENGTH(title) >= 5),
     description TEXT NOT NULL CHECK (LENGTH(description) >= 10),
     location VARCHAR(255) NOT NULL,
     city VARCHAR(100) NOT NULL,
     category VARCHAR(100) NOT NULL,
-    subcategory VARCHAR(100),
-    tags TEXT[], -- PostgreSQL array type
     country_code VARCHAR(3) NOT NULL,
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL CHECK (end_time > start_time),
-    timezone VARCHAR(50) NOT NULL DEFAULT 'UTC',
     image_urls TEXT[], -- Multiple images
-    video_url VARCHAR(500) CHECK (video_url ~ '^https?://'),
-    host_uuids UUID[], -- Array of user UUIDs
+    cohost_uuids UUID[], -- Array of user UUIDs
     edited_by UUID NOT NULL, -- User UUID
-    -- edit_reason VARCHAR(500), unusefull
     is_current_version BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	price NUMERIC(10,2),
+	currency VARCHAR(3),
     CONSTRAINT fk_content_event FOREIGN KEY (event_uuid) REFERENCES event(uuid) ON DELETE CASCADE DEFERRABLE INITIALLY DEFERRED,
     CONSTRAINT fk_previous_version FOREIGN KEY (previous_version_uuid) REFERENCES event_content(uuid) DEFERRABLE INITIALLY DEFERRED,
     CONSTRAINT unique_event_version UNIQUE (event_uuid, version_number)
@@ -451,68 +446,78 @@ CREATE INDEX idx_payment_event ON payment_transaction(event_uuid);
 CREATE TABLE notification (
     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
     user_uuid UUID NOT NULL, -- NO FK!
-    notification_type VARCHAR(30) NOT NULL, -- EVENT_PUBLISHED, REGISTRATION_CONFIRMED, PAYMENT_SUCCESS
-    priority VARCHAR(10) DEFAULT 'NORMAL', -- LOW, NORMAL, HIGH, URGENT
+    type VARCHAR(30) NOT NULL, -- EVENT_PUBLISHED, REGISTRATION_CONFIRMED, PAYMENT_SUCCESS
+    priority SMALLINT NOT NULL DEFAULT 1,  -- 0=LOW,1=NORMAL,2=HIGH,3=URGENT
     title VARCHAR(255) NOT NULL,
     body TEXT NOT NULL,
-    deep_link VARCHAR(500), -- app://event/12345
-    image_url VARCHAR(500),
-    is_read BOOLEAN DEFAULT FALSE,
-    read_at TIMESTAMP,
-    delivered_at TIMESTAMP,
-    delivery_status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, SENT, FAILED
-    failure_reason TEXT,
+    deep_link TEXT,
+    image_url TEXT,
+    -- is_read BOOLEAN DEFAULT FALSE,
+    -- read_at TIMESTAMP,
+    -- delivered_at TIMESTAMP,
+    -- delivery_status VARCHAR(20) DEFAULT 'PENDING', -- PENDING, SENT, FAILED
+    -- failure_reason TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP
+    expires_at TIMESTAMP,
+	deleted_at TIMESTAMP
 );
+
+CREATE INDEX idx_notif_user_created
+  ON notification (user_uuid, created_at DESC, id DESC)
+  WHERE deleted_at IS NULL;
+  
+CREATE INDEX idx_notif_expires
+  ON notification (expires_at)
+  WHERE expires_at IS NOT NULL;
+  
+CREATE TABLE notification_read_marker (
+  user_uuid        UUID PRIMARY KEY,
+  read_all_before  TIMESTAMP NOT NULL DEFAULT 'epoch'::TIMESTAMP,
+  updated_at       TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE notification_read_receipt (
+  user_uuid        uuid NOT NULL,
+  notification_id  uuid NOT NULL,
+  read_at          TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (user_uuid, notification_id)
+);
+
+CREATE INDEX idx_receipt_user_readat
+  ON notification_read_receipt (user_uuid, read_at DESC);
 
 -- User notification preferences
-CREATE TABLE notification_preference (
-    user_uuid UUID PRIMARY KEY,
-    push_enabled BOOLEAN DEFAULT TRUE,
-    email_enabled BOOLEAN DEFAULT TRUE,
-    sms_enabled BOOLEAN DEFAULT FALSE,
-    quiet_hours_start TIME,
-    quiet_hours_end TIME,
-    blocked_categories TEXT[], -- ['MARKETING', 'SOCIAL']
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- CREATE TABLE notification_preference (
+--     user_uuid UUID PRIMARY KEY,
+--     push_enabled BOOLEAN DEFAULT TRUE,
+--     email_enabled BOOLEAN DEFAULT TRUE,
+--     sms_enabled BOOLEAN DEFAULT FALSE,
+--     quiet_hours JSONB
+--     blocked_categories TEXT[] NOT NULL DEFAULT '{}'::text[], -- ['MARKETING', 'SOCIAL']
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
 
 -- Notification device tokens (FCM, APNS)
-CREATE TABLE notification_device (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    user_uuid UUID NOT NULL, -- NO FK!
-    device_type VARCHAR(10) CHECK (device_type IN ('IOS', 'ANDROID', 'WEB')),
-    device_token TEXT NOT NULL,
-    is_active BOOLEAN DEFAULT TRUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT unique_device_token UNIQUE(device_token)
-);
+-- CREATE TABLE notification_device (
+--     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+--     user_uuid UUID NOT NULL, -- NO FK!
+--     device_type VARCHAR(10) CHECK (device_type IN ('IOS', 'ANDROID', 'WEB')),
+--     device_token TEXT NOT NULL,
+--     is_active BOOLEAN DEFAULT TRUE,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--     CONSTRAINT unique_device_token UNIQUE(device_token)
+--);
 
 -- Outbox pattern for reliable event delivery
-CREATE TABLE notification_outbox (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    event_type VARCHAR(30) NOT NULL,
-    payload JSONB NOT NULL,
-    processed_at TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- CREATE TABLE notification_outbox (
+--     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+--     event_type VARCHAR(30) NOT NULL,
+--     payload JSONB NOT NULL,
+--     processed_at TIMESTAMP,
+--     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- );
 
-CREATE INDEX idx_notification_user ON notification(user_uuid, created_at DESC) WHERE is_read = FALSE;
-CREATE INDEX idx_notification_status ON notification(delivery_status) WHERE delivery_status = 'PENDING';
-
-CREATE TABLE event_vector_chunk (
-    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
-    source_event_uuid UUID NOT NULL, 
-    chunk_text TEXT NOT NULL, 
-    embedding bytea NOT NULL, 
-    category VARCHAR(100), 
-    status VARCHAR(10),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE INDEX ON event_vector_chunk USING ivfflat (embedding vector_cosine_ops) 
-WITH (lists = 1000);
+-- CREATE INDEX idx_notification_user ON notification(user_uuid, created_at DESC) WHERE is_read = FALSE;
+-- CREATE INDEX idx_notification_status ON notification(delivery_status) WHERE delivery_status = 'PENDING';

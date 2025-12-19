@@ -1,9 +1,14 @@
+import { API_BASE_URL } from "@/lib/api/clients";
+import { connect } from "@/lib/api/notifications";
 import { INITIAL_NOTIFICATIONS } from "@/lib/constants";
 import { Notification } from "@/lib/types";
 import { Bell } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 export default function Notificator() {
+
+    connect();
+
     const [notifications, setNotifications] = useState<Notification[]>(INITIAL_NOTIFICATIONS);
     const [isNotifOpen, setIsNotifOpen] = useState(false);
     const notifRef = useRef<HTMLDivElement>(null);

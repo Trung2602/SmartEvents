@@ -45,6 +45,18 @@ public interface EventRegistrationRepository extends JpaRepository<EventRegistra
             @Param("status") String status
     );
 
+    @Modifying
+    @Query(value = """
+        UPDATE event_registration
+        SET check_in_time = CURRENT_TIMESTAMP,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE uuid = CAST(:uuid AS UUID)
+        """, nativeQuery = true)
+    void checkInWithStaff(
+            @Param("uuid") UUID uuid,
+            @Param("staffUuid") UUID staffUuid
+    );
+
     @Query(value = """
             SELECT * FROM event_registration
             WHERE event_uuid = CAST(:eventUuid AS UUID)

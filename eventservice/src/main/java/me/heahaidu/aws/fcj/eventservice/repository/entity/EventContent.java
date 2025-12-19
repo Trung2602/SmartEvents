@@ -28,9 +28,6 @@ public class EventContent {
     @Column(name = "previous_version_uuid")
     private UUID previousVersionUuid;
 
-    @Column(name = "version_number", nullable = false)
-    private Integer versionNumber = 1;
-
     @Column(nullable = false)
     private String title;
 
@@ -46,11 +43,6 @@ public class EventContent {
     @Column(nullable = false)
     private String category;
 
-    private String subcategory;
-
-    @Column(columnDefinition = "TEXT[]")
-    private List<String> tags;
-
     @Column(name = "country_code", nullable = false)
     private String countryCode;
 
@@ -60,23 +52,14 @@ public class EventContent {
     @Column(name = "end_time", nullable = false)
     private Instant endTime;
 
-    @Column(nullable = false)
-    private String timezone = "UTC";
-
     @Column(name = "image_urls", columnDefinition = "TEXT[]")
     private List<String> imageUrls;
 
-    @Column(name = "video_url")
-    private String videoUrl;
-
-    @Column(name = "host_uuids", columnDefinition = "UUID[]")
-    private List<UUID> hostUuids;
+    @Column(name = "cohost_uuids", columnDefinition = "UUID[]")
+    private List<UUID> cohostUuids;
 
     @Column(name = "edited_by", nullable = false)
     private UUID editedBy;
-
-    @Column(name = "edit_reason")
-    private String editReason;
 
     @Column(name = "is_current_version", nullable = false)
     private Boolean isCurrentVersion = true;

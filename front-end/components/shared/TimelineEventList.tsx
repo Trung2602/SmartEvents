@@ -41,7 +41,7 @@ export default function TimelineEventList({ events, onSelect, onToggleInterest }
             {/* Middle Column: Axis (Sidebar) - Desktop Only */}
             <div className="relative flex flex-col items-center flex-shrink-0 w-6 hidden md:flex">
               <div className="absolute top-3 bottom-0 w-[2px] bg-gray-100 dark:bg-white/5"></div>
-              <div className="sticky top-24 w-4 h-4 rounded-full bg-brand-purple border-4 border-white dark:border-[#050505] shadow-sm z-10 mt-1.5"></div>
+              <div className="sticky top-24 w-4 h-4 rounded-full bg-brand-purple border-4 border-white dark:border-[#050505] bg-white shadow-sm z-10 mt-1.5"></div>
             </div>
 
             {/* Right Column: Events List */}

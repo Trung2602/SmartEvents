@@ -4,13 +4,18 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import me.heahaidu.aws.fcj.eventservice.controller.dto.request.CreateEventRequest;
+import me.heahaidu.aws.fcj.eventservice.controller.dto.request.EditEventRequest;
+import me.heahaidu.aws.fcj.eventservice.controller.dto.request.QrCheckInRequest;
 import me.heahaidu.aws.fcj.eventservice.controller.dto.response.EventListResponse;
 import me.heahaidu.aws.fcj.eventservice.controller.dto.response.EventResponse;
+import me.heahaidu.aws.fcj.eventservice.service.EventInterestService;
+import me.heahaidu.aws.fcj.eventservice.service.EventRegisterService;
 import me.heahaidu.aws.fcj.eventservice.service.EventService;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +30,8 @@ import java.util.UUID;
 public class EventController {
 
     private final EventService eventService;
+    private final EventInterestService eventInterestService;
+    private final EventRegisterService eventRegisterService;
 
     @GetMapping("/events")
     public ResponseEntity<EventListResponse> getEvents(
@@ -51,51 +58,105 @@ public class EventController {
 
     @PostMapping("/event/create")
     public ResponseEntity<?> createEvent(
-            @RequestHeader("X-User-UUID") UUID createBy,
+            @RequestHeader("X-User-UUID") UUID userUuid,
             @Valid @RequestBody CreateEventRequest request
             ) {
-            log.info(createBy.toString());
+        log.info("Create event userUuid {}, request: {}", userUuid, request);
+        EventResponse event = eventService.createEvent(request, userUuid);
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body("Event created successfully");
+                .body(event);
     }
 
-    @GetMapping("/event/register/{eventId}")
+    @PostMapping("/event/edit/{eventUuid}")
+    public ResponseEntity<EventResponse> editEvent(
+            @PathVariable UUID eventUuid,
+            @RequestHeader("X-User-UUID") UUID userUuid,
+            @Valid @RequestBody EditEventRequest request
+    ) {
+        EventResponse event = eventService.editEvent(eventUuid, request, userUuid);
+        return ResponseEntity.ok(event);
+    }
+
+    @GetMapping("/event/delete/{eventId}")
+    public ResponseEntity<EventResponse> deleteEvent(@PathVariable UUID eventId, @RequestHeader("X-User-UUID") UUID userUuid) {
+        eventService.deleteEvent(userUuid, eventId);
+        return ResponseEntity.status(200).build();
+    }
+
+    @GetMapping("/event/hide/{eventId}")
+    public ResponseEntity<EventResponse> hideEvent(@PathVariable UUID eventId, @RequestHeader("X-User-UUID") UUID userUuid) {
+        eventService.hideEvent(userUuid, eventId);
+        return ResponseEntity.status(200).build();
+    }
+
+    @GetMapping("/event/show/{eventId}")
+    public ResponseEntity<EventResponse> showEvent(@PathVariable UUID eventId, @RequestHeader("X-User-UUID") UUID userUuid) {
+        eventService.showEvent(userUuid, eventId);
+        return ResponseEntity.status(200).build();
+    }
+
+    @GetMapping("/event/registration/{eventId}")
     public ResponseEntity<?> registerEvent(
             @PathVariable UUID eventId,
             @RequestHeader("X-User-UUID") UUID userUuid,
             @RequestHeader("X-User-Email") String email) {
-        eventService.registerEvent(eventId, userUuid, email);
+        eventRegisterService.registerEvent(eventId, userUuid, email);
         return ResponseEntity.status(200).build();
     }
 
-    @GetMapping("/event/unregister/{eventId}")
-    public ResponseEntity<?> unregisterEvent(@PathVariable UUID eventId) {
-
+    @GetMapping("/event/unregistration/{eventId}")
+    public ResponseEntity<?> unregisterEvent(
+            @PathVariable UUID eventId,
+            @RequestHeader("X-User-UUID") UUID userUuid,
+            @RequestHeader("X-User-Email") String email) {
+        eventRegisterService.unregisterEvent(eventId, userUuid, email);
         return ResponseEntity.status(200).build();
     }
 
-    @GetMapping("/event/interest/{eventId}")
-    public ResponseEntity<?> interestEvent(@PathVariable UUID eventId) {
+    @GetMapping("/event/interest/{eventUuid}")
+    public ResponseEntity<?> interestEvent(
+            @PathVariable UUID eventUuid,
+            @RequestHeader("X-User-UUID") UUID userUuid) {
 
+        eventInterestService.interest(eventUuid, userUuid);
         return ResponseEntity.status(200).build();
     }
 
-    @GetMapping("/event/uninterest/{eventId}")
-    public ResponseEntity<?> uninterestEvent(@PathVariable UUID eventId) {
+    @GetMapping("/event/uninterest/{eventUuid}")
+    public ResponseEntity<?> uninterestEvent(
+            @PathVariable UUID eventUuid,
+            @RequestHeader("X-User-UUID") UUID userUuid) {
+        eventInterestService.uninterest(eventUuid, userUuid);
         return ResponseEntity.status(200).build();
     }
 
-//    @GetMapping("/registrations/{registrationUuid}/qr-code")
-//    public ResponseEntity<byte[]> getQrCode(
-//            @PathVariable UUID registrationUuid,
-//            @AuthenticationPrincipal UUID userUuid
-//    ) {
-//        byte[] qrImage = registrationService.getTicketQrCode(registrationUuid, userUuid);
-//
-//        return ResponseEntity.ok()
-//                .contentType(MediaType.IMAGE_PNG)
-//                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"ticket-qr.png\"")
-//                .body(qrImage);
-//    }
+    @GetMapping("/event/registration/{eventUuid}/qr-code")
+    public ResponseEntity<byte[]> getQrCode(
+            @PathVariable UUID eventUuid,
+            @RequestHeader("X-User-UUID") UUID userUuid
+    ) {
+        byte[] qrImage = eventRegisterService.getTicketQrCode(eventUuid, userUuid);
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.IMAGE_PNG)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"ticket-qr.png\"")
+                .body(qrImage);
+    }
+
+    @PostMapping("/events/{eventUuid}/check-in")
+    public ResponseEntity<?> checkIn(
+            @PathVariable UUID eventUuid,
+            @RequestBody QrCheckInRequest request,
+            @RequestHeader("X-User-UUID") UUID staffUuid
+    ) {
+        if (request.getQrCode() != null) {
+            eventRegisterService.checkInByQrCode(eventUuid, staffUuid, request.getQrCode());
+        } else {
+            throw new IllegalArgumentException("Either qrContent or registrationUuid is required");
+        }
+
+        return ResponseEntity.status(201).build();
+    }
+
 }

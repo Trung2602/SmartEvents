@@ -20,7 +20,7 @@ public interface EventContentRepository extends JpaRepository<EventContent, UUID
             """
             SELECT
                 e.uuid                      AS eventUuid,
-                e.page_uuid                 AS pageUuid,
+                e.created_by                AS createdBy,
                 e.current_participants      AS currentParticipants,
                 e.max_participants          AS maxParticipants,
                 ec.title                    AS title,
@@ -46,22 +46,22 @@ public interface EventContentRepository extends JpaRepository<EventContent, UUID
     @Query("SELECT ec FROM EventContent ec WHERE ec.eventUuid = :eventUuid AND ec.isCurrentVersion = true")
     Optional<EventContent> findCurrentVersionByEventUuid(@Param("eventUuid") UUID eventUuid);
 
-    @Query("SELECT ec FROM EventContent ec WHERE ec.eventUuid = :eventUuid ORDER BY ec.versionNumber DESC")
-    List<EventContent> findAllVersionsByEventUuid(@Param("eventUuid") UUID eventUuid);
-
-    @Query("SELECT ec FROM EventContent ec WHERE ec.eventUuid = :eventUuid AND ec.versionNumber = :version")
-    Optional<EventContent> findByEventUuidAndVersion(
-            @Param("eventUuid") UUID eventUuid,
-            @Param("version") Integer version
-    );
+//    @Query("SELECT ec FROM EventContent ec WHERE ec.eventUuid = :eventUuid ORDER BY ec.versionNumber DESC")
+//    List<EventContent> findAllVersionsByEventUuid(@Param("eventUuid") UUID eventUuid);
+//
+//    @Query("SELECT ec FROM EventContent ec WHERE ec.eventUuid = :eventUuid AND ec.versionNumber = :version")
+//    Optional<EventContent> findByEventUuidAndVersion(
+//            @Param("eventUuid") UUID eventUuid,
+//            @Param("version") Integer version
+//    );
 
     @Query("SELECT ec FROM EventContent ec WHERE ec.editedBy = :userUuid ORDER BY ec.createdAt DESC")
     List<EventContent> findByEditedBy(@Param("userUuid") UUID userUuid);
 
     // ==================== Version Operations ====================
 
-    @Query("SELECT COALESCE(MAX(ec.versionNumber), 0) FROM EventContent ec WHERE ec.eventUuid = :eventUuid")
-    Integer findMaxVersionByEventUuid(@Param("eventUuid") UUID eventUuid);
+//    @Query("SELECT COALESCE(MAX(ec.versionNumber), 0) FROM EventContent ec WHERE ec.eventUuid = :eventUuid")
+//    Integer findMaxVersionByEventUuid(@Param("eventUuid") UUID eventUuid);
 
     @Query("SELECT COUNT(ec) FROM EventContent ec WHERE ec.eventUuid = :eventUuid")
     Long countVersionsByEventUuid(@Param("eventUuid") UUID eventUuid);

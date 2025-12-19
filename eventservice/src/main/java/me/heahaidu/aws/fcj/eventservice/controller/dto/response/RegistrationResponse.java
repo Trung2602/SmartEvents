@@ -17,6 +17,7 @@ public class RegistrationResponse {
     private UUID userUuid;
     private Instant registeredAt;
     private String message;
+    private String email;
 
     public static RegistrationResponse from(EventRegistration registration, String email, String message) {
         return RegistrationResponse.builder()
@@ -25,6 +26,7 @@ public class RegistrationResponse {
                 .userUuid(registration.getUserUuid())
                 .registeredAt(registration.getCreatedAt())
                 .message(message)
+                .email(email)
                 .build();
     }
 

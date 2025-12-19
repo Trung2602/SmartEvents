@@ -41,7 +41,7 @@ export default function AutoBanner({events}:AutoBannerProps) {
         </h2>
         <div className="flex items-center gap-4 text-gray-200 text-sm font-medium">
           <span className="flex items-center gap-1">
-             <Calendar size={16} /> {currentEvent.date}
+             <Calendar size={16} /> {currentEvent.startTime}
           </span>
           <span className="w-1 h-1 bg-gray-400 rounded-full"></span>
           <span>{currentEvent.location}</span>
