@@ -38,6 +38,7 @@ export const fetchUserProfile = async (): Promise<UserProfile> => {
     console.error('Error loading user profile:', error);
     // Return a fallback user to prevent app crash
     return {
+      uuid: '',
       name: 'Guest',
       username: '@guest',
       email: '',
