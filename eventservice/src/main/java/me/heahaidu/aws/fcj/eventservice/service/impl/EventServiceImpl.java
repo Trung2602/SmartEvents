@@ -40,7 +40,7 @@ import java.util.UUID;
 public class EventServiceImpl implements EventService {
 
     private final EventListRepository eventListRepository;
-    private final EventRepository  eventRepository;
+    private final EventRepository eventRepository;
     private final EventContentRepository eventContentRepository;
 
     private final ApplicationEventPublisher applicationEventPublisher;
@@ -87,7 +87,7 @@ public class EventServiceImpl implements EventService {
                 .category(r.getCategory())
                 .maxParticipants(r.getMaxParticipants())
                 .currentParticipants(r.getCurrentParticipants())
-                .imageUrl(r.getImageUrls()[0])
+                .imageUrl(r.getImageUrls() != null ? r.getImageUrls()[0] : "")
                 .countryCode(r.getCountryCode())
                 .build()
         ).toList();
