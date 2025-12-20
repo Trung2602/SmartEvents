@@ -6,11 +6,21 @@ import java.util.UUID;
 public record NotificationEvent(
         UUID eventId,
         UUID userUuid,
-        String eventType,
-        String title,
+        String notificationType,
         String body,
-        String deepLink,
         String imageUrl,
+        String userEmail,
+        Instant startTime,
+        Instant endTime,
+        String countryId,
+        String city,
+        String location,
+        UUID registrationUuid,
         Instant occurredAt,
         int schemaVersion
 ) {}
+
+/*
+ *                 "Ticket Confirmed",
+ *                 "You have successfully booked tickets for " + event.content().getTitle().toLowerCase(),
+ */
