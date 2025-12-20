@@ -81,7 +81,6 @@ CREATE TABLE user_profile (
     privacy_settings JSONB, -- Profile visibility
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    -- CONSTRAINT fk_profile_account FOREIGN KEY (account_uuid) REFERENCES account(uuid) ON DELETE CASCADE
 );
 
 -- Indexes cho performance
@@ -485,38 +484,23 @@ CREATE TABLE notification_read_receipt (
 CREATE INDEX idx_receipt_user_readat
   ON notification_read_receipt (user_uuid, read_at DESC);
 
--- User notification preferences
--- CREATE TABLE notification_preference (
---     user_uuid UUID PRIMARY KEY,
---     push_enabled BOOLEAN DEFAULT TRUE,
---     email_enabled BOOLEAN DEFAULT TRUE,
---     sms_enabled BOOLEAN DEFAULT FALSE,
---     quiet_hours JSONB
---     blocked_categories TEXT[] NOT NULL DEFAULT '{}'::text[], -- ['MARKETING', 'SOCIAL']
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
--- );
+CREATE TABLE event_vector_chunk (
+    uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
+    source_event_uuid UUID NOT NULL, 
+    
+    -- Đoạn văn bản sẽ được dùng để tạo Prompt cho Gemini
+    chunk_text TEXT NOT NULL, 
+    
+    -- Vector embedding (1536 là kích thước thường dùng cho mô hình text-embedding-004)
+    embedding bytea NOT NULL, 
+    
+    -- Các trường metadata để lọc nhanh trước khi tìm kiếm vector
+    category VARCHAR(100), 
+    status VARCHAR(10),
 
--- Notification device tokens (FCM, APNS)
--- CREATE TABLE notification_device (
---     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
---     user_uuid UUID NOT NULL, -- NO FK!
---     device_type VARCHAR(10) CHECK (device_type IN ('IOS', 'ANDROID', 'WEB')),
---     device_token TEXT NOT NULL,
---     is_active BOOLEAN DEFAULT TRUE,
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
---     CONSTRAINT unique_device_token UNIQUE(device_token)
---);
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 
--- Outbox pattern for reliable event delivery
--- CREATE TABLE notification_outbox (
---     uuid UUID PRIMARY KEY DEFAULT uuid_generate_v7(),
---     event_type VARCHAR(30) NOT NULL,
---     payload JSONB NOT NULL,
---     processed_at TIMESTAMP,
---     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
--- );
-
--- CREATE INDEX idx_notification_user ON notification(user_uuid, created_at DESC) WHERE is_read = FALSE;
--- CREATE INDEX idx_notification_status ON notification(delivery_status) WHERE delivery_status = 'PENDING';
+CREATE INDEX ON event_vector_chunk USING ivfflat (embedding vector_cosine_ops) 
+WITH (lists = 1000);
