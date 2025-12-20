@@ -7,7 +7,6 @@ public record NotificationResponse(
         UUID uuid,
         String type,
         short priority,
-        String title,
         String body,
         String deepLink,
         String imageUrl,

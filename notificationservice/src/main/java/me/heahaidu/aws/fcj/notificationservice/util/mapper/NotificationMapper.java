@@ -18,7 +18,6 @@ public class NotificationMapper {
                 n.getUuid(),
                 n.getType(),
                 n.getPriority(),
-                n.getTitle(),
                 n.getBody(),
                 n.getDeepLink(),
                 n.getImageUrl(),
