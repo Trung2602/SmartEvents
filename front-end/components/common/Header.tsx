@@ -10,10 +10,11 @@ interface HeaderProps {
   title?: string;
   onNavigate?: (label: string) => void;
   onLogin: () => void,
-  onRegister: () => void
+  onRegister: () => void,
+  onOpenSetting: () => void
 }
 
-export default function Header({ title = 'Discover', onNavigate, onLogin, onRegister }: HeaderProps) {
+export default function Header({ title = 'Discover', onNavigate, onLogin, onRegister, onOpenSetting }: HeaderProps) {
   const { user } = useContext(AuthContext);
 
   return (
@@ -23,7 +24,7 @@ export default function Header({ title = 'Discover', onNavigate, onLogin, onRegi
          {user ? (
            <>
              <Notificator />
-             <Account onNavigate={onNavigate}/>
+             <Account onNavigate={onNavigate} onOpenSetting={onOpenSetting}/>
            </>
          ) : (
            <>

@@ -5,7 +5,6 @@ import { Footer } from '@/components/common/Footer';
 import { useContext, useEffect, useState } from 'react';
 import { User, Theme, Event } from '@/lib/types';
 import { Modal } from '@/components/common/Modal';
-import { FEATURED_EVENTS, REVIEWS } from '@/lib/constants';
 import Hero from './Hero';
 import DownloadSection from './Download';
 import Login from '@/components/common/Login';
@@ -20,7 +19,6 @@ export default function Home() {
   const { user } = useContext(AuthContext);
 
   const [theme, setTheme] = useState<Theme>('dark');
-  const [events, setEvents] = useState<Event[]>(FEATURED_EVENTS);
 
   // --- Modals ---
   const [showSignInModal, setShowSignInModal] = useState(false);
@@ -57,10 +55,6 @@ export default function Home() {
     }
   }, [theme]);
 
-  // --- Handlers ---
-  const handleSetTheme = (theme: Theme) => {
-    setTheme(theme);
-  }
 
   const handleSubmitReview = () => {
     if (!selectedEvent || !user) return;
@@ -102,13 +96,13 @@ export default function Home() {
             <button className="cursor-pointer text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 transition-colors">View All</button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {events.slice(0, 3).map(event => (
+            {/* {events.slice(0, 3).map(event => (
               <EventCard
                 key={event.uuid}
                 event={event}
                 onClick={() => setSelectedEvent(event)}
               />
-            ))}
+            ))} */}
           </div>
         </div>
 

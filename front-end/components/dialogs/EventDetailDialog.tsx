@@ -5,11 +5,12 @@ import { X, Calendar, MapPin, Heart, Pencil, Trash2, Ticket, Download, Ban } fro
 import { Event, UserProfile } from '@/lib/types';
 import { format } from 'date-fns';
 import { eventApi } from '@/lib/api/event';
+import { useEventStore } from '@/hooks/useEventStore';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 interface EventDetailDialogProps {
-    event: Event | null;
+    eventUuid: string | null;
     currentUser?: UserProfile | null;
-    onClose: () => void;
     onToggleInterest: (id: string) => void;
     onEdit?: (event: Event) => void;
     onDelete?: (id: string) => void;
@@ -18,40 +19,9 @@ interface EventDetailDialogProps {
     onLogin: () => void;
 }
 
-const SAMPLE_DESCRIPTION = `Superteam Vietnam is hosting the showcase of all promising projects in 2025. There are 2 sessions:
-
-Morning Session — Showcase & Exhibition (9 - 11:30)
-
-Meet the builders behind Vietnam's most promising Web3 projects.
-
-Teams will showcase their live products, demos, and prototypes
-
-A chance for students, founders, and partners to interact directly with the builders and explore real-world applications.
-
-Afternoon Session — Official Demo Day (13:00 - 18:00)
-
-Selected teams will have 5 minutes to pitch (3-minute presentation + 2-minute Q&A).
-
-After the pitching, 1-on-1 meetings between teams and investors will take place in the VC Zone.
-
-Who knows — one pitch could change a life.
-
-One day, one idea, one chance to become the next millionaire.
-
-Who are we bringing to the event?
-
-Top teams from Superteam Vietnam
-
-Superteam Vietnam partners
-
-Talents from Superteam Vietnam Community
-
-See you at the event!`;
-
 export default function EventDetailDialog({
-    event,
+    eventUuid,
     currentUser,
-    onClose,
     onToggleInterest,
     onEdit,
     onDelete,
@@ -61,13 +31,12 @@ export default function EventDetailDialog({
 }: EventDetailDialogProps) {
     const [isScrolled, setIsScrolled] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
-    const [description, setDescription] = useState<string>();
+    const { event, getEvent } = useEventStore();
+
+    const router = useRouter();
+    const params = useSearchParams();
 
     useEffect(() => {
-
-        if (event) {
-            handlerEvent(event.uuid)
-        }
         const handleScroll = () => {
             if (scrollRef.current) {
                 setIsScrolled(scrollRef.current.scrollTop > 200);
@@ -80,11 +49,13 @@ export default function EventDetailDialog({
         };
     }, [event]);
 
-    async function handlerEvent(uuid: string) {
-        setDescription((await eventApi.get(uuid)).description)
-    }
+    useEffect(() => {
+        if (eventUuid) {
+            getEvent(eventUuid);
+        }
+    }, [eventUuid])
 
-    if (!event) return null;
+    if (!event || !eventUuid) return null;
 
     const canEdit = event.isOwner;
     const canDelete = event.isOwner;
@@ -92,13 +63,20 @@ export default function EventDetailDialog({
     const organizerAvatar = event.organizerAvatar || '';
     const isLiked = event.isLiked || event.isInterested || false;
 
+    const onClose = () => {
+        const p = new URLSearchParams(params.toString());
+        p.delete('e');
+        router.push(`/app/discover`, {scroll:false})
+        
+    }
+
     // Generate QR Data if registered
     const qrData = currentUser ? `Event:${event.uuid};User:${currentUser.email};Ticket:${Math.random()}` : '';
     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}`;
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-0 md:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white dark:bg-[#121212] w-full md:max-w-2xl h-full md:h-[90vh] md:rounded-3xl shadow-2xl relative flex flex-col overflow-hidden">
+            <div className="bg-white dark:bg-[#121212] w-full md:max-w-2xl h-full md:h-[90vh] md:rounded-xl shadow-2xl relative flex flex-col overflow-hidden">
 
                 {/* Sticky Header */}
                 <div
@@ -133,10 +111,10 @@ export default function EventDetailDialog({
                             //     <video src={event.imageUrl} className="w-full h-full object-cover" autoPlay muted loop />
                             // ) : 
                             (
-                                <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover"
+                                <img src={event.imageUrl || '../9051cabf-bd78-4f29-acfa-b50f92dd82eb.png'} alt={event.title} className="w-full h-full object-cover"
                                     onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
                                         const target = e.currentTarget;
-                                        target.src = '9051cabf-bd78-4f29-acfa-b50f92dd82eb.png'
+                                        target.src = '../9051cabf-bd78-4f29-acfa-b50f92dd82eb.png'
                                         target.className = 'opacity-50 object-center'
                                     }}
                                 />
@@ -232,7 +210,7 @@ export default function EventDetailDialog({
                                 <div>
                                     <div className="font-bold text-gray-900 dark:text-white text-lg">{format(event.startTime, 'yyyy/MM/d')}</div>
                                     <div className="text-sm text-gray-500 dark:text-gray-400">{format(event.startTime, 'HH:mm')} - {format(event.endTime, 'HH:mm')}</div>
-                                    <button className="text-xs text-brand-purple font-medium mt-1 hover:underline">Add to Calendar</button>
+                                    {/* <button className="text-xs text-brand-purple font-medium mt-1 hover:underline">Add to Calendar</button> */}
                                 </div>
                             </div>
                             <div className="flex items-start gap-4 flex-1">
@@ -242,7 +220,7 @@ export default function EventDetailDialog({
                                 <div>
                                     <div className="font-bold text-gray-900 dark:text-white text-lg">{event.location}</div>
                                     <div className="text-sm text-gray-500 dark:text-gray-400">{event.countryCode}</div>
-                                    <button className="text-xs text-brand-purple font-medium mt-1 hover:underline">View on Map</button>
+                                    {/* <button className="text-xs text-brand-purple font-medium mt-1 hover:underline">View on Map</button> */}
                                 </div>
                             </div>
                         </div>
@@ -281,7 +259,7 @@ export default function EventDetailDialog({
                         <div>
                             <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3">About Event</h3>
                             <div className="text-gray-600 dark:text-gray-300 leading-relaxed text-base whitespace-pre-line">
-                                {description}
+                                {event.description}
                             </div>
                         </div>
 
@@ -290,7 +268,7 @@ export default function EventDetailDialog({
                             <div className="border-t border-gray-100 dark:border-white/5 pt-6">
                                 <div className="flex items-center justify-between mb-4">
                                     <h3 className="text-lg font-bold text-gray-900 dark:text-white">Attending</h3>
-                                    <span className="text-sm text-brand-purple font-semibold hover:underline cursor-pointer">View All</span>
+                                    {/* <span className="text-sm text-brand-purple font-semibold hover:underline cursor-pointer">View All</span> */}
                                 </div>
                                 <div className="flex items-center gap-4">
                                     <div className="flex -space-x-3">
@@ -341,7 +319,7 @@ export default function EventDetailDialog({
                     <div className="flex items-center gap-3 ml-auto">
                         <button
                             onClick={() => onToggleInterest(event.uuid)}
-                            className={`p-3 rounded-full border transition-colors ${isLiked
+                            className={`cursor-pointer p-3 rounded-full border transition-colors ${isLiked
                                 ? 'bg-red-50 text-red-500 border-red-200 dark:bg-red-900/20 dark:border-red-500/30'
                                 : 'border-gray-200 dark:border-white/10 text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5'
                                 }`}
@@ -354,7 +332,7 @@ export default function EventDetailDialog({
                                 event.isRegistered ? (
                                     <button
                                         onClick={() => onUnregisterEvent && onUnregisterEvent(event)}
-                                        className="bg-transparent border-2 border-red-500 text-red-500 px-6 md:px-8 py-3 rounded-full font-bold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
+                                        className="cursor-pointer bg-transparent border-2 border-red-500 text-red-500 px-6 md:px-8 py-3 rounded-full font-bold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors flex items-center gap-2"
                                     >
                                         <Ban size={18} /> Cancel Registration
                                     </button>
@@ -362,7 +340,7 @@ export default function EventDetailDialog({
                                     <button
                                         onClick={() => onRegisterEvent && onRegisterEvent(event)}
                                         disabled={event.isSoldOut || event.isEnded}
-                                        className="bg-black dark:bg-white text-white dark:text-black px-6 md:px-8 py-3 rounded-full font-bold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                        className="cursor-pointer bg-black dark:bg-white text-white dark:text-black px-6 md:px-8 py-3 rounded-full font-bold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                     >
                                         {event.isEnded ? 'Event Ended' : (event.isSoldOut ? 'Sold Out' : 'Register')}
                                         {!event.isEnded && !event.isSoldOut && <Ticket size={18} />}

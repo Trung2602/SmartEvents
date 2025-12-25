@@ -66,11 +66,11 @@ export default function TimelineEventList({ events, onSelect, onToggleInterest }
                     {/* Left: Image Section (Full Cover, approx 40%) */}
                     <div className="w-full md:w-[40%] relative overflow-hidden shrink-0">
                       <img
-                        src={event.imageUrl}
+                        src={event.imageUrl || '../9051cabf-bd78-4f29-acfa-b50f92dd82eb.png'}
                         onError={(e:React.SyntheticEvent<HTMLImageElement>) => {
                           const target = e.currentTarget;
-                          target.src = '9051cabf-bd78-4f29-acfa-b50f92dd82eb.png'
-                          target.className='opacity-50 w-full h-full object-cover transition-transform duration-700'
+                          target.src = '../9051cabf-bd78-4f29-acfa-b50f92dd82eb.png'
+                          target.className='w-full h-full object-cover transition-transform duration-700'
                         }}
                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 "
                         alt={event.title}
@@ -153,7 +153,7 @@ export default function TimelineEventList({ events, onSelect, onToggleInterest }
 
                       {/* Bottom Right: Price */}
                       {event.price && <div className="absolute bottom-6 right-6 z-20">
-                        <span className={`text-sm font-normal px-4 py-2 rounded-md border ${event.price === 'Free' ? 'bg-green-50 border-green-100 text-green-700 dark:bg-green-900/10 dark:border-green-900/30 dark:text-green-400' : 'bg-white border-gray-200 text-gray-900 dark:bg-white/5 dark:border-white/10 dark:text-white shadow-sm'}`}>
+                        <span className={`text-sm font-normal px-4 py-2 rounded-md border ${event.price === 0 ? 'bg-green-50 border-green-100 text-green-700 dark:bg-green-900/10 dark:border-green-900/30 dark:text-green-400' : 'bg-white border-gray-200 text-gray-900 dark:bg-white/5 dark:border-white/10 dark:text-white shadow-sm'}`}>
                           {event.price}
                         </span>
                       </div>}

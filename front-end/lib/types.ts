@@ -5,8 +5,9 @@ export interface Event {
   title: string; 
   startTime: string;
   endTime: string;
-  location: string;
   countryCode: string;
+  city: string;
+  location: string;
   category: string; 
   imageUrl: string; 
   organizerName?: string;
@@ -14,16 +15,17 @@ export interface Event {
   organizerId?: string; 
   organizerType?: 'user' | 'page';
   coHosts?: UserProfile[]; 
-  price?: string;
+  host: string;
+  price?: number;
   currency?: string;
   description?: string;
   isSoldOut?: boolean;
   isEnded?: boolean;
-  
   isLiked?: boolean;
-  isOwner?: boolean; 
+  isOwner?: boolean;
   isRegistered?: boolean; 
   currentParticipants?: number;
+  maxParticipants?: number;
   hasCheckedIn?:boolean;
   status?: 'upcoming' | 'full' | 'ended';
   isInterested?: boolean;
@@ -99,6 +101,7 @@ export type ViewMode = 'list' | 'grid';
 export type AppPage = 'Discover' | 'Channel' | 'Bookmarks' | 'Profile' | 'Activity' | 'Settings' | 'Support';
 export type ActivityTab = 'registered' | 'attended' | 'missed' | 'cancelled';
 export type EventCardType = 'app' | 'landing' | 'chat'
+export type NotificationType = "EVENT_REGISTERED"  | "EVENT_CREATED"  | string;
 
 // Legacy types for backward compatibility
 export interface Organizer {

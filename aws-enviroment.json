@@ -1,0 +1,488 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "All-in-one microservices on AWS: VPC(2AZ)+ECS Fargate(4 svcs)+ALB+API GW HTTP API(VPC Link->ALB)+3xRDS(Postgres)+2xS3+CloudFront+IAM(GitHub OIDC + ECS task role). JSON with debug comments.",
+  "Metadata": {
+    "_comment_00": "JSON does not support true comments. This template uses _comment_* keys and Metadata to annotate sections. Safe to deploy.",
+    "_comment_01": "Sections: 1) Parameters, 2) Networking, 3) S3, 4) IAM, 5) RDS, 6) ALB+ECS, 7) API Gateway, 8) CloudFront, 9) Outputs"
+  },
+  "Parameters": {
+    "ProjectName": { "Type": "String", "Default": "ms" },
+
+    "VpcCidr": { "Type": "String", "Default": "10.0.0.0/16" },
+    "PublicSubnet1Cidr": { "Type": "String", "Default": "10.0.0.0/24" },
+    "PublicSubnet2Cidr": { "Type": "String", "Default": "10.0.1.0/24" },
+    "PrivateSubnet1Cidr": { "Type": "String", "Default": "10.0.10.0/24" },
+    "PrivateSubnet2Cidr": { "Type": "String", "Default": "10.0.11.0/24" },
+
+    "ImagesBucketName": { "Type": "String" },
+    "WebBucketName": { "Type": "String" },
+
+    "GitHubOrg": { "Type": "String" },
+    "GitHubRepo": { "Type": "String" },
+    "GitHubBranch": { "Type": "String", "Default": "main" },
+
+    "DbUsername": { "Type": "String", "Default": "appuser" },
+    "DbPassword": { "Type": "String", "NoEcho": true, "MinLength": 8 },
+    "DbPort": { "Type": "Number", "Default": 5432 },
+    "DbInstanceClass": { "Type": "String", "Default": "db.t4g.micro" },
+    "DbAllocatedStorage": { "Type": "Number", "Default": 20 },
+    "DbMultiAZ": { "Type": "String", "AllowedValues": ["true", "false"], "Default": "false" },
+
+    "ContainerPort": { "Type": "Number", "Default": 80 },
+
+    "ServiceAImage": { "Type": "String", "Default": "public.ecr.aws/nginx/nginx:latest" },
+    "ServiceBImage": { "Type": "String", "Default": "public.ecr.aws/nginx/nginx:latest" },
+    "ServiceCImage": { "Type": "String", "Default": "public.ecr.aws/nginx/nginx:latest" },
+    "ServiceDImage": { "Type": "String", "Default": "public.ecr.aws/nginx/nginx:latest" },
+
+    "ServiceAPath": { "Type": "String", "Default": "/service-a/*" },
+    "ServiceBPath": { "Type": "String", "Default": "/service-b/*" },
+    "ServiceCPath": { "Type": "String", "Default": "/service-c/*" },
+    "ServiceDPath": { "Type": "String", "Default": "/service-d/*" },
+
+    "HealthCheckPath": { "Type": "String", "Default": "/" },
+
+    "DesiredCountA": { "Type": "Number", "Default": 1 },
+    "DesiredCountB": { "Type": "Number", "Default": 1 },
+    "DesiredCountC": { "Type": "Number", "Default": 1 },
+    "DesiredCountD": { "Type": "Number", "Default": 1 },
+
+    "AutoScaleMin": { "Type": "Number", "Default": 1 },
+    "AutoScaleMax": { "Type": "Number", "Default": 4 },
+    "AutoScaleCpuTarget": { "Type": "Number", "Default": 60.0 }
+  },
+
+  "Conditions": {
+    "IsMultiAZ": { "Fn::Equals": [{ "Ref": "DbMultiAZ" }, "true"] }
+  },
+
+  "Resources": {
+    "Vpc": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": { "Ref": "VpcCidr" },
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-vpc" } }]
+      }
+    },
+
+    "InternetGateway": { "Type": "AWS::EC2::InternetGateway" },
+
+    "AttachIgw": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": { "VpcId": { "Ref": "Vpc" }, "InternetGatewayId": { "Ref": "InternetGateway" } }
+    },
+
+    "PublicSubnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "AvailabilityZone": { "Fn::Select": [0, { "Fn::GetAZs": "" }] },
+        "CidrBlock": { "Ref": "PublicSubnet1Cidr" },
+        "MapPublicIpOnLaunch": true,
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-public-a" } }]
+      }
+    },
+    "PublicSubnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "AvailabilityZone": { "Fn::Select": [1, { "Fn::GetAZs": "" }] },
+        "CidrBlock": { "Ref": "PublicSubnet2Cidr" },
+        "MapPublicIpOnLaunch": true,
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-public-b" } }]
+      }
+    },
+
+    "PrivateSubnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "AvailabilityZone": { "Fn::Select": [0, { "Fn::GetAZs": "" }] },
+        "CidrBlock": { "Ref": "PrivateSubnet1Cidr" },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-private-a" } }]
+      }
+    },
+    "PrivateSubnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "AvailabilityZone": { "Fn::Select": [1, { "Fn::GetAZs": "" }] },
+        "CidrBlock": { "Ref": "PrivateSubnet2Cidr" },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-private-b" } }]
+      }
+    },
+
+    "PublicRouteTable": { "Type": "AWS::EC2::RouteTable", "Properties": { "VpcId": { "Ref": "Vpc" } } },
+
+    "PublicDefaultRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": "AttachIgw",
+      "Properties": {
+        "RouteTableId": { "Ref": "PublicRouteTable" },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": { "Ref": "InternetGateway" }
+      }
+    },
+
+    "PublicSubnet1Assoc": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": { "SubnetId": { "Ref": "PublicSubnet1" }, "RouteTableId": { "Ref": "PublicRouteTable" } }
+    },
+    "PublicSubnet2Assoc": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": { "SubnetId": { "Ref": "PublicSubnet2" }, "RouteTableId": { "Ref": "PublicRouteTable" } }
+    },
+
+    "NatEip1": { "Type": "AWS::EC2::EIP", "Properties": { "Domain": "vpc" } },
+    "NatEip2": { "Type": "AWS::EC2::EIP", "Properties": { "Domain": "vpc" } },
+
+    "NatGateway1": {
+      "Type": "AWS::EC2::NatGateway",
+      "Properties": { "AllocationId": { "Fn::GetAtt": ["NatEip1", "AllocationId"] }, "SubnetId": { "Ref": "PublicSubnet1" } }
+    },
+    "NatGateway2": {
+      "Type": "AWS::EC2::NatGateway",
+      "Properties": { "AllocationId": { "Fn::GetAtt": ["NatEip2", "AllocationId"] }, "SubnetId": { "Ref": "PublicSubnet2" } }
+    },
+
+    "PrivateRouteTable1": { "Type": "AWS::EC2::RouteTable", "Properties": { "VpcId": { "Ref": "Vpc" } } },
+    "PrivateRouteTable2": { "Type": "AWS::EC2::RouteTable", "Properties": { "VpcId": { "Ref": "Vpc" } } },
+
+    "PrivateDefaultRoute1": {
+      "Type": "AWS::EC2::Route",
+      "Properties": { "RouteTableId": { "Ref": "PrivateRouteTable1" }, "DestinationCidrBlock": "0.0.0.0/0", "NatGatewayId": { "Ref": "NatGateway1" } }
+    },
+    "PrivateDefaultRoute2": {
+      "Type": "AWS::EC2::Route",
+      "Properties": { "RouteTableId": { "Ref": "PrivateRouteTable2" }, "DestinationCidrBlock": "0.0.0.0/0", "NatGatewayId": { "Ref": "NatGateway2" } }
+    },
+
+    "PrivateSubnet1Assoc": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": { "SubnetId": { "Ref": "PrivateSubnet1" }, "RouteTableId": { "Ref": "PrivateRouteTable1" } }
+    },
+    "PrivateSubnet2Assoc": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": { "SubnetId": { "Ref": "PrivateSubnet2" }, "RouteTableId": { "Ref": "PrivateRouteTable2" } }
+    },
+
+    "ImagesBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": { "Ref": "ImagesBucketName" },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": false,
+          "IgnorePublicAcls": false,
+          "BlockPublicPolicy": false,
+          "RestrictPublicBuckets": false
+        },
+        "CorsConfiguration": {
+          "CorsRules": [
+            {
+              "AllowedMethods": ["GET", "PUT", "POST", "HEAD"],
+              "AllowedOrigins": ["*"],
+              "AllowedHeaders": ["*"],
+              "MaxAge": 3000
+            }
+          ]
+        }
+      }
+    },
+
+    "ImagesBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": { "Ref": "ImagesBucket" },
+        "PolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Sid": "PublicReadGetObject",
+              "Effect": "Allow",
+              "Principal": "*",
+              "Action": ["s3:GetObject"],
+              "Resource": [{ "Fn::Sub": "arn:aws:s3:::${ImagesBucketName}/*" }]
+            }
+          ]
+        }
+      }
+    },
+
+    "WebBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketName": { "Ref": "WebBucketName" },
+        "PublicAccessBlockConfiguration": {
+          "BlockPublicAcls": true,
+          "IgnorePublicAcls": true,
+          "BlockPublicPolicy": true,
+          "RestrictPublicBuckets": true
+        }
+      }
+    },
+
+    "EcsTaskRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": { "Fn::Sub": "${ProjectName}-ecs-task-role" },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [{ "Effect": "Allow", "Principal": { "Service": "ecs-tasks.amazonaws.com" }, "Action": "sts:AssumeRole" }]
+        },
+        "Policies": [
+          {
+            "PolicyName": "UploadImagesToS3",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "WriteImages",
+                  "Effect": "Allow",
+                  "Action": ["s3:PutObject", "s3:AbortMultipartUpload", "s3:ListBucketMultipartUploads", "s3:ListMultipartUploadParts"],
+                  "Resource": [{ "Fn::Sub": "arn:aws:s3:::${ImagesBucketName}/*" }]
+                },
+                {
+                  "Sid": "ListImagesBucket",
+                  "Effect": "Allow",
+                  "Action": ["s3:ListBucket"],
+                  "Resource": [{ "Fn::Sub": "arn:aws:s3:::${ImagesBucketName}" }]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+
+    "GitHubOidcProvider": {
+      "Type": "AWS::IAM::OIDCProvider",
+      "Properties": {
+        "Url": "https://token.actions.githubusercontent.com",
+        "ClientIdList": ["sts.amazonaws.com"],
+        "ThumbprintList": ["6938fd4d98bab03faadb97b34396831e3780aea1"]
+      }
+    },
+
+    "GitHubDeployRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": { "Fn::Sub": "${ProjectName}-github-deploy" },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Federated": { "Ref": "GitHubOidcProvider" } },
+              "Action": "sts:AssumeRoleWithWebIdentity",
+              "Condition": {
+                "StringEquals": { "token.actions.githubusercontent.com:aud": "sts.amazonaws.com" },
+                "StringLike": {
+                  "token.actions.githubusercontent.com:sub": {
+                    "Fn::Sub": "repo:${GitHubOrg}/${GitHubRepo}:ref:refs/heads/${GitHubBranch}"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "Policies": [
+          {
+            "PolicyName": "DeployWebToS3AndInvalidateCF",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "S3WriteWeb",
+                  "Effect": "Allow",
+                  "Action": ["s3:PutObject", "s3:DeleteObject", "s3:ListBucket", "s3:GetBucketLocation"],
+                  "Resource": [
+                    { "Fn::Sub": "arn:aws:s3:::${WebBucketName}" },
+                    { "Fn::Sub": "arn:aws:s3:::${WebBucketName}/*" }
+                  ]
+                },
+                {
+                  "Sid": "InvalidateCloudFront",
+                  "Effect": "Allow",
+                  "Action": ["cloudfront:CreateInvalidation"],
+                  "Resource": [{ "Fn::Sub": "arn:aws:cloudfront::${AWS::AccountId}:distribution/${WebDistribution}" }]
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+
+    "DbSubnetGroup": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "Private subnets for RDS",
+        "SubnetIds": [{ "Ref": "PrivateSubnet1" }, { "Ref": "PrivateSubnet2" }]
+      }
+    },
+
+    "DbSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "GroupDescription": "RDS Postgres SG (ingress from ECS SG added later).",
+        "SecurityGroupEgress": [{ "IpProtocol": "-1", "CidrIp": "0.0.0.0/0" }]
+      }
+    },
+
+    "Db1": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "Engine": "postgres",
+        "DBInstanceIdentifier": { "Fn::Sub": "${ProjectName}-db1" },
+        "DBInstanceClass": { "Ref": "DbInstanceClass" },
+        "AllocatedStorage": { "Ref": "DbAllocatedStorage" },
+        "DBSubnetGroupName": { "Ref": "DbSubnetGroup" },
+        "VPCSecurityGroups": [{ "Ref": "DbSecurityGroup" }],
+        "MasterUsername": { "Ref": "DbUsername" },
+        "MasterUserPassword": { "Ref": "DbPassword" },
+        "BackupRetentionPeriod": 7,
+        "MultiAZ": { "Fn::If": ["IsMultiAZ", true, false] },
+        "StorageEncrypted": true,
+        "PubliclyAccessible": false,
+        "DeletionProtection": false
+      }
+    },
+
+    "Db2": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "Engine": "postgres",
+        "DBInstanceIdentifier": { "Fn::Sub": "${ProjectName}-db2" },
+        "DBInstanceClass": { "Ref": "DbInstanceClass" },
+        "AllocatedStorage": { "Ref": "DbAllocatedStorage" },
+        "DBSubnetGroupName": { "Ref": "DbSubnetGroup" },
+        "VPCSecurityGroups": [{ "Ref": "DbSecurityGroup" }],
+        "MasterUsername": { "Ref": "DbUsername" },
+        "MasterUserPassword": { "Ref": "DbPassword" },
+        "BackupRetentionPeriod": 7,
+        "MultiAZ": { "Fn::If": ["IsMultiAZ", true, false] },
+        "StorageEncrypted": true,
+        "PubliclyAccessible": false,
+        "DeletionProtection": false
+      }
+    },
+
+    "Db3": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "Engine": "postgres",
+        "DBInstanceIdentifier": { "Fn::Sub": "${ProjectName}-db3" },
+        "DBInstanceClass": { "Ref": "DbInstanceClass" },
+        "AllocatedStorage": { "Ref": "DbAllocatedStorage" },
+        "DBSubnetGroupName": { "Ref": "DbSubnetGroup" },
+        "VPCSecurityGroups": [{ "Ref": "DbSecurityGroup" }],
+        "MasterUsername": { "Ref": "DbUsername" },
+        "MasterUserPassword": { "Ref": "DbPassword" },
+        "BackupRetentionPeriod": 7,
+        "MultiAZ": { "Fn::If": ["IsMultiAZ", true, false] },
+        "StorageEncrypted": true,
+        "PubliclyAccessible": false,
+        "DeletionProtection": false
+      }
+    },
+
+    "AlbSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "GroupDescription": "ALB SG allow inbound HTTP (80) from internet.",
+        "SecurityGroupIngress": [
+          { "IpProtocol": "tcp", "FromPort": 80, "ToPort": 80, "CidrIp": "0.0.0.0/0" }
+        ],
+        "SecurityGroupEgress": [{ "IpProtocol": "-1", "CidrIp": "0.0.0.0/0" }]
+      }
+    },
+
+    "EcsSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "GroupDescription": "ECS tasks SG allow inbound from ALB only.",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": { "Ref": "ContainerPort" },
+            "ToPort": { "Ref": "ContainerPort" },
+            "SourceSecurityGroupId": { "Ref": "AlbSecurityGroup" }
+          }
+        ],
+        "SecurityGroupEgress": [{ "IpProtocol": "-1", "CidrIp": "0.0.0.0/0" }]
+      }
+    },
+
+    "DbIngressFromEcs": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "GroupId": { "Ref": "DbSecurityGroup" },
+        "IpProtocol": "tcp",
+        "FromPort": { "Ref": "DbPort" },
+        "ToPort": { "Ref": "DbPort" },
+        "SourceSecurityGroupId": { "Ref": "EcsSecurityGroup" }
+      }
+    },
+
+    "Alb": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Type": "application",
+        "Scheme": "internet-facing",
+        "Subnets": [{ "Ref": "PublicSubnet1" }, { "Ref": "PublicSubnet2" }],
+        "SecurityGroups": [{ "Ref": "AlbSecurityGroup" }]
+      }
+    },
+
+    "AlbListenerHttp": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "LoadBalancerArn": { "Ref": "Alb" },
+        "Port": 80,
+        "Protocol": "HTTP",
+        "DefaultActions": [
+          {
+            "Type": "fixed-response",
+            "FixedResponseConfig": { "StatusCode": "404", "ContentType": "text/plain", "MessageBody": "Not found" }
+          }
+        ]
+      }
+    },
+
+    "TargetGroupA": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "TargetType": "ip",
+        "Port": { "Ref": "ContainerPort" },
+        "Protocol": "HTTP",
+        "HealthCheckPath": { "Ref": "HealthCheckPath" },
+        "Matcher": { "HttpCode": "200-399" }
+      }
+    },
+    "TargetGroupB": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "TargetType": "ip",
+        "Port": { "Ref": "ContainerPort" },
+        "Protocol": "HTTP",
+        "HealthCheckPath": { "Ref": "HealthCheckPath" },
+        "Matcher": { "HttpCode": "200-399" }
+      }
+    },
+    "TargetGroupC": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "TargetType": "ip",
+        "Port": { "Ref": "ContainerPort" },
+        "Protocol": "HTTP",
+        "HealthCheckPath": { "Ref":
