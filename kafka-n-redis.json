@@ -1,0 +1,322 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "ECS Fargate + Cloud Map + Redis + Kafka (apache/kafka:4.0.0) internal services",
+  "Parameters": {
+    "ProjectName": { "Type": "String", "Default": "ms" }
+  },
+  "Resources": {
+    "Vpc": {
+      "Type": "AWS::EC2::VPC",
+      "Properties": {
+        "CidrBlock": "10.0.0.0/16",
+        "EnableDnsHostnames": true,
+        "EnableDnsSupport": true,
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-vpc" } }]
+      }
+    },
+
+    "InternetGateway": { "Type": "AWS::EC2::InternetGateway" },
+    "VpcIgwAttachment": {
+      "Type": "AWS::EC2::VPCGatewayAttachment",
+      "Properties": { "VpcId": { "Ref": "Vpc" }, "InternetGatewayId": { "Ref": "InternetGateway" } }
+    },
+
+    "PublicSubnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "CidrBlock": "10.0.0.0/24",
+        "AvailabilityZone": { "Fn::Select": [0, { "Fn::GetAZs": "" }] },
+        "MapPublicIpOnLaunch": true,
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-public-1" } }]
+      }
+    },
+    "PublicSubnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "CidrBlock": "10.0.1.0/24",
+        "AvailabilityZone": { "Fn::Select": [1, { "Fn::GetAZs": "" }] },
+        "MapPublicIpOnLaunch": true,
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-public-2" } }]
+      }
+    },
+
+    "PrivateSubnet1": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "CidrBlock": "10.0.10.0/24",
+        "AvailabilityZone": { "Fn::Select": [0, { "Fn::GetAZs": "" }] },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-private-1" } }]
+      }
+    },
+    "PrivateSubnet2": {
+      "Type": "AWS::EC2::Subnet",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "CidrBlock": "10.0.11.0/24",
+        "AvailabilityZone": { "Fn::Select": [1, { "Fn::GetAZs": "" }] },
+        "MapPublicIpOnLaunch": false,
+        "Tags": [{ "Key": "Name", "Value": { "Fn::Sub": "${ProjectName}-private-2" } }]
+      }
+    },
+
+    "PublicRouteTable": { "Type": "AWS::EC2::RouteTable", "Properties": { "VpcId": { "Ref": "Vpc" } } },
+    "PublicRoute": {
+      "Type": "AWS::EC2::Route",
+      "DependsOn": ["VpcIgwAttachment"],
+      "Properties": {
+        "RouteTableId": { "Ref": "PublicRouteTable" },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "GatewayId": { "Ref": "InternetGateway" }
+      }
+    },
+    "PublicSubnet1RouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": { "SubnetId": { "Ref": "PublicSubnet1" }, "RouteTableId": { "Ref": "PublicRouteTable" } }
+    },
+    "PublicSubnet2RouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": { "SubnetId": { "Ref": "PublicSubnet2" }, "RouteTableId": { "Ref": "PublicRouteTable" } }
+    },
+
+    "NatEip": { "Type": "AWS::EC2::EIP", "Properties": { "Domain": "vpc" } },
+    "NatGateway": {
+      "Type": "AWS::EC2::NatGateway",
+      "Properties": { "AllocationId": { "Fn::GetAtt": ["NatEip", "AllocationId"] }, "SubnetId": { "Ref": "PublicSubnet1" } }
+    },
+
+    "PrivateRouteTable": { "Type": "AWS::EC2::RouteTable", "Properties": { "VpcId": { "Ref": "Vpc" } } },
+    "PrivateDefaultRoute": {
+      "Type": "AWS::EC2::Route",
+      "Properties": {
+        "RouteTableId": { "Ref": "PrivateRouteTable" },
+        "DestinationCidrBlock": "0.0.0.0/0",
+        "NatGatewayId": { "Ref": "NatGateway" }
+      }
+    },
+    "PrivateSubnet1RouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": { "SubnetId": { "Ref": "PrivateSubnet1" }, "RouteTableId": { "Ref": "PrivateRouteTable" } }
+    },
+    "PrivateSubnet2RouteTableAssociation": {
+      "Type": "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties": { "SubnetId": { "Ref": "PrivateSubnet2" }, "RouteTableId": { "Ref": "PrivateRouteTable" } }
+    },
+
+    "LogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": { "Fn::Sub": "/ecs/${ProjectName}" },
+        "RetentionInDays": 14
+      }
+    },
+
+    "EcsExecutionRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": { "Service": ["ecs-tasks.amazonaws.com"] },
+              "Action": "sts:AssumeRole"
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+        ]
+      }
+    },
+
+    "EcsCluster": { "Type": "AWS::ECS::Cluster" },
+
+    "EcsSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "GroupDescription": "Base SG for ECS tasks (egress allowed)",
+        "SecurityGroupEgress": [{ "IpProtocol": "-1", "CidrIp": "0.0.0.0/0" }]
+      }
+    },
+
+    "ServiceDiscoveryNamespace": {
+      "Type": "AWS::ServiceDiscovery::PrivateDnsNamespace",
+      "Properties": {
+        "Name": { "Fn::Sub": "${ProjectName}.local" },
+        "Vpc": { "Ref": "Vpc" }
+      }
+    },
+    "RedisDiscoveryService": {
+      "Type": "AWS::ServiceDiscovery::Service",
+      "Properties": {
+        "Name": "redis",
+        "NamespaceId": { "Ref": "ServiceDiscoveryNamespace" },
+        "DnsConfig": {
+          "DnsRecords": [{ "TTL": 10, "Type": "A" }],
+          "RoutingPolicy": "MULTIVALUE"
+        },
+        "HealthCheckCustomConfig": { "FailureThreshold": 1 }
+      }
+    },
+    "KafkaDiscoveryService": {
+      "Type": "AWS::ServiceDiscovery::Service",
+      "Properties": {
+        "Name": "kafka",
+        "NamespaceId": { "Ref": "ServiceDiscoveryNamespace" },
+        "DnsConfig": {
+          "DnsRecords": [{ "TTL": 10, "Type": "A" }],
+          "RoutingPolicy": "MULTIVALUE"
+        },
+        "HealthCheckCustomConfig": { "FailureThreshold": 1 }
+      }
+    },
+
+    "RedisSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "GroupDescription": "Redis SG: inbound 6379 from ECS tasks only",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 6379,
+            "ToPort": 6379,
+            "SourceSecurityGroupId": { "Ref": "EcsSecurityGroup" }
+          }
+        ],
+        "SecurityGroupEgress": [{ "IpProtocol": "-1", "CidrIp": "0.0.0.0/0" }]
+      }
+    },
+
+    "KafkaSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "VpcId": { "Ref": "Vpc" },
+        "GroupDescription": "Kafka SG: inbound 9092/9093 from ECS tasks only",
+        "SecurityGroupIngress": [
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 9092,
+            "ToPort": 9092,
+            "SourceSecurityGroupId": { "Ref": "EcsSecurityGroup" }
+          },
+          {
+            "IpProtocol": "tcp",
+            "FromPort": 9093,
+            "ToPort": 9093,
+            "SourceSecurityGroupId": { "Ref": "EcsSecurityGroup" }
+          }
+        ],
+        "SecurityGroupEgress": [{ "IpProtocol": "-1", "CidrIp": "0.0.0.0/0" }]
+      }
+    },
+
+    "RedisTaskDef": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "Family": { "Fn::Sub": "${ProjectName}-redis" },
+        "RequiresCompatibilities": ["FARGATE"],
+        "NetworkMode": "awsvpc",
+        "Cpu": "256",
+        "Memory": "512",
+        "ExecutionRoleArn": { "Fn::GetAtt": ["EcsExecutionRole", "Arn"] },
+        "ContainerDefinitions": [
+          {
+            "Name": "redis",
+            "Image": "redis:7",
+            "PortMappings": [{ "ContainerPort": 6379, "Protocol": "tcp" }],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": { "Ref": "LogGroup" },
+                "awslogs-region": { "Ref": "AWS::Region" },
+                "awslogs-stream-prefix": "redis"
+              }
+            }
+          }
+        ]
+      }
+    },
+
+    "RedisService": {
+      "Type": "AWS::ECS::Service",
+      "DependsOn": ["EcsCluster", "LogGroup"],
+      "Properties": {
+        "ServiceName": { "Fn::Sub": "${ProjectName}-redis" },
+        "Cluster": { "Ref": "EcsCluster" },
+        "LaunchType": "FARGATE",
+        "DesiredCount": 1,
+        "TaskDefinition": { "Ref": "RedisTaskDef" },
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "DISABLED",
+            "Subnets": [{ "Ref": "PrivateSubnet1" }, { "Ref": "PrivateSubnet2" }],
+            "SecurityGroups": [{ "Ref": "RedisSecurityGroup" }]
+          }
+        },
+        "ServiceRegistries": [
+          { "RegistryArn": { "Fn::GetAtt": ["RedisDiscoveryService", "Arn"] } }
+        ]
+      }
+    },
+
+    "KafkaTaskDef": {
+      "Type": "AWS::ECS::TaskDefinition",
+      "Properties": {
+        "Family": { "Fn::Sub": "${ProjectName}-kafka" },
+        "RequiresCompatibilities": ["FARGATE"],
+        "NetworkMode": "awsvpc",
+        "Cpu": "1024",
+        "Memory": "2048",
+        "ExecutionRoleArn": { "Fn::GetAtt": ["EcsExecutionRole", "Arn"] },
+        "ContainerDefinitions": [
+          {
+            "Name": "kafka",
+            "Image": "apache/kafka:4.0.0",
+            "PortMappings": [
+              { "ContainerPort": 9092, "Protocol": "tcp" },
+              { "ContainerPort": 9093, "Protocol": "tcp" }
+            ],
+            "Environment": [
+              { "Name": "KAFKA_PROCESS_ROLES", "Value": "broker,controller" },
+              { "Name": "KAFKA_CONTROLLER_LISTENER_NAMES", "Value": "CONTROLLER" },
+              { "Name": "KAFKA_LISTENERS", "Value": "PLAINTEXT://:9092,CONTROLLER://:9093" },
+              { "Name": "KAFKA_LISTENER_SECURITY_PROTOCOL_MAP", "Value": "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT" },
+              { "Name": "KAFKA_ADVERTISED_LISTENERS", "Value": { "Fn::Sub": "PLAINTEXT://kafka.${ProjectName}.local:9092" } },
+              { "Name": "KAFKA_CONTROLLER_QUORUM_VOTERS", "Value": { "Fn::Sub": "1@kafka.${ProjectName}.local:9093" } },
+              { "Name": "KAFKA_NODE_ID", "Value": "1" },
+              { "Name": "KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR", "Value": "1" },
+              { "Name": "KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR", "Value": "1" },
+              { "Name": "KAFKA_TRANSACTION_STATE_LOG_MIN_ISR", "Value": "1" },
+              { "Name": "KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS", "Value": "0" }
+            ],
+            "LogConfiguration": {
+              "LogDriver": "awslogs",
+              "Options": {
+                "awslogs-group": { "Ref": "LogGroup" },
+                "awslogs-region": { "Ref": "AWS::Region" },
+                "awslogs-stream-prefix": "kafka"
+              }
+            }
+          }
+        ]
+      }
+    },
+
+    "KafkaService": {
+      "Type": "AWS::ECS::Service",
+      "DependsOn": ["EcsCluster", "LogGroup"],
+      "Properties": {
+        "ServiceName": { "Fn::Sub": "${ProjectName}-kafka" },
+        "Cluster": { "Ref": "EcsCluster" },
+        "LaunchType": "FARGATE",
+        "DesiredCount": 1,
+        "TaskDefinition": { "Ref": "KafkaTaskDef" },
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+  

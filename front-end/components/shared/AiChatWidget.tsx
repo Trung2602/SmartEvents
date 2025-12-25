@@ -13,7 +13,7 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) 
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
   const [messages, setMessages] = useState<typeof wsMessages>([]);
-
+  const [isNearBottom, setIsNearBottom] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -21,7 +21,7 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) 
 
   // STOMP chat hook
   const { messages: wsMessages, sendMessage, isTyping: wsTyping } = useStompChat(
-    'http://localhost:8080/ws-chat/websocket',
+    'http://localhost:8083/ws-chat/websocket',
     '/topic/answer',
     '/app/query'
   );
@@ -32,7 +32,6 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) 
 
   useEffect(() => {
     setMessages(prev => {
-      // thêm các tin nhắn mới từ wsMessages
       const newMsgs = wsMessages.slice(prev.length);
       return [...prev, ...newMsgs];
     });
@@ -46,6 +45,17 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) 
     sendMessage(inputValue);
     setInputValue('');
   };
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollHeight = document.documentElement.scrollHeight;
+      const scrollPosition = window.innerHeight + window.pageYOffset;
+      setIsNearBottom(scrollHeight - scrollPosition < 150);
+    };
+    window.addEventListener('scroll', handleScroll);
+    setIsNearBottom(document.documentElement.scrollHeight === window.innerHeight);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -61,10 +71,14 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) 
       {/* FAB */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-24 right-6 md:bottom-6 md:right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 ${
+        className={`cursor-pointer fixed z-50 w-14 h-14 right-24 lg:right-6 rounded-full flex items-center justify-center shadow-2xl transition-all duration-300 hover:scale-110 rounded-full" ${
           isOpen
             ? 'bg-gray-900 text-white dark:bg-white dark:text-black'
             : 'bg-gradient-to-tr from-brand-purple to-blue-500 text-white'
+        }  ${
+            isNearBottom 
+            ? 'bottom-6 lg:bottom-24 ' 
+            : 'bottom-6 lg:bottom-6 '
         }`}
       >
         {isOpen ? <ChevronDown size={28} /> : <Sparkles size={24} />}
@@ -74,9 +88,13 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) 
       <div
         className={`fixed z-40 bg-white/95 dark:bg-[#121212]/95 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-2xl overflow-hidden transition-all duration-300 ease-out flex flex-col ${
           isOpen
-            ? 'bottom-24 right-4 md:bottom-24 md:right-6 w-[90vw] md:w-[380px] h-[600px] rounded-3xl opacity-100 scale-100 translate-y-0'
-            : 'bottom-10 right-6 w-0 h-0 opacity-0 scale-90 translate-y-10 rounded-full'
-        }`}
+            ? 'right-4 md:right-6 w-[90vw] md:w-[380px] h-[600px] rounded-xl opacity-100 scale-100 translate-y-0'
+            : 'bottom-10 right-6 w-0 h-0 opacity-0 scale-90 translate-y-10 rounded-xl'
+        } ${
+          isNearBottom 
+          ? 'bottom-24 lg:bottom-42' 
+          : 'bottom-24 lg:bottom-24'
+      }`}
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-white/5 bg-white/50 dark:bg-black/20">
@@ -91,7 +109,7 @@ const AiChatWidget: React.FC<AiChatWidgetProps> = ({ allEvents, onEventClick }) 
               </p>
             </div>
           </div>
-          <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full text-gray-500">
+          <button onClick={() => setIsOpen(false)} className="cursor-pointer p-2 hover:bg-gray-100 dark:hover:bg-white/10 rounded-full text-gray-500">
             <X size={18} />
           </button>
         </div>

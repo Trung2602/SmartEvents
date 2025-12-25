@@ -48,11 +48,11 @@ export default function EventCard({ event, variant = 'landing', onClick, onToggl
       {/* Image Container */}
       <div className={`relative w-full overflow-hidden ${isDashboard ? 'h-52' : 'h-64'}`}>
         <img
-          src={event.imageUrl}
+          src={event.imageUrl || '../9051cabf-bd78-4f29-acfa-b50f92dd82eb.png'}
           onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
             const target = e.currentTarget;
-            target.src = '9051cabf-bd78-4f29-acfa-b50f92dd82eb.png'
-            target.className = 'opacity-50 w-full h-full object-cover transition-transform duration-700'
+            target.src = '../9051cabf-bd78-4f29-acfa-b50f92dd82eb.png'
+            target.className = 'w-full h-full object-cover transition-transform duration-700'
           }}
           alt={event.title}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
@@ -81,7 +81,7 @@ export default function EventCard({ event, variant = 'landing', onClick, onToggl
 
         {/* Price Badge Bottom Right */}
         {event.price && <div className="absolute bottom-4 right-4 z-10">
-          <span className={`text-xs font-bold px-3 py-1.5 rounded-xl backdrop-blur-md border ${event.price === 'Free' ? 'bg-green-500/20 border-green-400/30 text-green-100' : 'bg-white/20 border-white/20 text-white'}`}>
+          <span className={`text-xs font-bold px-3 py-1.5 rounded-xl backdrop-blur-md border ${event.price === 0 ? 'bg-green-500/20 border-green-400/30 text-green-100' : 'bg-white/20 border-white/20 text-white'}`}>
             {event.price}
           </span>
         </div>}

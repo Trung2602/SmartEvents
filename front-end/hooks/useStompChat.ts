@@ -48,7 +48,6 @@ export const useStompChat = (url: string, topic: string, appDestination: string)
   const sendMessage = (text: string, topK = 10) => {
     if (!clientRef.current || !isConnected) return;
 
-    // Hiển thị message user ngay lập tức
     setMessages((prev) => [
       ...prev,
       { id: Date.now().toString(), sender: 'user', text, timestamp: new Date() },

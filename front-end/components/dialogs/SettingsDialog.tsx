@@ -1,3 +1,4 @@
+'use client'
 
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { User, Bell, Shield, X, Monitor, Sun, Moon, Globe, Clock, ChevronRight, Mail, Trash2, LogOut, AtSign } from 'lucide-react';
@@ -14,19 +15,27 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
   const { user } = useContext(AuthContext)
   const [activeTab, setActiveTab] = useState('My account');
 
+  const emptyProfile: UserProfile = {
+    uuid: '',
+    name: '',
+    username: '',
+    email: '',
+    avatarUrl: '',
+    city: '',
+    country: '',
+    timezone: ''
+  }
+
   // Password state
   // const [passwordData, setPasswordData] = useState({ current: '', new: '', confirm: '' });
   // const [showPassword, setShowPassword] = useState({ current: false, new: false, confirm: false });
   const [privacySettings, setPrivacySettings] = useState({ isPrivate: false, showActivity: true });
   const fileInputRef = useRef<HTMLInputElement>(null);
-  // Dirty state check to show Save button only when needed (optional, simplistic version here)
   const [isDirty, setIsDirty] = useState(false);
   const { theme, setTheme } = useTheme();
 
 
-
-  // Local state for form handling
-  const [formData, setFormData] = useState<UserProfile>(user || {} as UserProfile);
+  const [formData, setFormData] = useState<UserProfile>(emptyProfile);
 
 
   useEffect(() => {
@@ -36,24 +45,25 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
     }
   }, [user, isOpen]);
 
-  // Reset dirty state when changing tabs to avoid confusion in this simple implementation
   useEffect(() => {
     setIsDirty(false);
   }, [activeTab]);
 
-  if (!isOpen || !user) return (<></>);
+  if (!isOpen || !user || !formData) return null;
 
   const sidebarGroups = [
     {
       title: 'Account',
       items: [
         { id: 'My account', icon: User, label: 'My account' },
-        { id: 'My settings', icon: Shield, label: 'My settings' }, // Merged Privacy & Appearance concept
+        { id: 'My settings', icon: Shield, label: 'My settings' },
         { id: 'Language & region', icon: Globe, label: 'Language & region' },
         { id: 'Notifications', icon: Bell, label: 'Notifications' },
       ]
     }
   ];
+  console.log(user)
+  console.log(formData)
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     // setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -103,7 +113,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose }) => {
 
   return (
     isOpen &&
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={handleBackdropClick} >
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 backdrop-blur-xs" onClick={handleBackdropClick} >
       <div className="bg-white dark:bg-[#191919] w-full max-w-5xl h-[650px] rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row animate-in fade-in zoom-in duration-200 font-sans">
 
         {/* SIDEBAR */}

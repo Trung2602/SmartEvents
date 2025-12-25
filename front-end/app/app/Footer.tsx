@@ -6,12 +6,12 @@ import { Theme } from "@/lib/types";
 export default function Footer() {
     const { theme, setTheme} = useTheme();
     return (
-        <footer className="border-t border-gray-200 dark:border-white/5 py-6 mt-auto transition-colors duration-300">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4 px-6">
+        <footer className="border-t border-gray-200 dark:border-white/5 py-6 mt-auto transition-colors duration-300 transition-all">
+            <div className="flex flex-col lg:flex-row justify-between items-center gap-4 px-6">
                 <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                     <span className="font-bold text-gray-900 dark:text-white">interest.</span>
-                    <span className="hidden md:inline text-gray-300 dark:text-gray-700">•</span>
-                    <span className="hidden md:inline">Designed by Heahaidu</span>
+                    <span className="hidden lg:inline text-gray-300 dark:text-gray-700">•</span>
+                    <span className="hidden lg:inline">Designed by Heahaidu</span>
                 </div>
 
                 <div className="flex items-center gap-3">
