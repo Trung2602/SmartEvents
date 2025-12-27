@@ -178,7 +178,7 @@ public class ApiAccountController {
         ));
     }
 
-    @PostMapping("/account/forgot-password")
+    @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam String email) {
 
         Account account = this.accountService.getAccountByEmail(email);
@@ -195,7 +195,7 @@ public class ApiAccountController {
         return ResponseEntity.ok("OTP đã gửi qua email");
     }
 
-    @PostMapping("/account/verify-forgot-password")
+    @PostMapping("/verify-forgot-password")
     public ResponseEntity<?> verifyOtp(@RequestParam String email, @RequestParam String otp) {
         String cachedOtp = otpService.getOtp(email);
 
@@ -216,7 +216,7 @@ public class ApiAccountController {
         ));
     }
 
-    @PatchMapping("/account/reset-password")
+    @PatchMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestParam String resetToken, @RequestParam String password) {
         String email = otpService.getEmailByResetToken(resetToken);
 
@@ -233,7 +233,7 @@ public class ApiAccountController {
         return ResponseEntity.ok("Đổi mật khẩu thành công");
     }
 
-    @PostMapping("/account/change-password")
+    @PostMapping("/change-password")
     public ResponseEntity<?> changePassword(
             @RequestBody Map<String, String> payload,
             Principal principal) {
@@ -264,7 +264,7 @@ public class ApiAccountController {
         }
     }
 
-    @PatchMapping("/account/update-info")
+    @PatchMapping("/update-info")
     public ResponseEntity<?> updateInformation(
             @RequestPart(value = "avatar", required = false) MultipartFile avatar,
             @RequestPart("data") UserProfileDTO dto,
